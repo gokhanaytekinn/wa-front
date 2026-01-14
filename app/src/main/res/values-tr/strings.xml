@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Uygulama Adı -->
+    <string name="app_name">Hava Durumu</string>
+    
+    <!-- Navigasyon -->
+    <string name="nav_home">Ana Sayfa</string>
+    <string name="nav_forecast">Tahmin</string>
+    <string name="nav_favorites">Favoriler</string>
+    <string name="nav_settings">Ayarlar</string>
+    
+    <!-- Ana Sayfa -->
+    <string name="search_location">Şehir veya ilçe ara</string>
+    <string name="current_weather">Güncel Hava Durumu</string>
+    <string name="temperature">Sıcaklık</string>
+    <string name="humidity">Nem</string>
+    <string name="wind_speed">Rüzgar Hızı</string>
+    <string name="precipitation">Yağış</string>
+    <string name="feels_like">Hissedilen</string>
+    <string name="pressure">Basınç</string>
+    <string name="visibility">Görüş Mesafesi</string>
+    <string name="uv_index">UV İndeksi</string>
+    
+    <!-- Tahmin Ekranı -->
+    <string name="five_day_forecast">5 Günlük Tahmin</string>
+    <string name="hourly_forecast">Saatlik Tahmin</string>
+    <string name="daily_forecast">Günlük Tahmin</string>
+    <string name="high">Maks</string>
+    <string name="low">Min</string>
+    
+    <!-- Favoriler Ekranı -->
+    <string name="favorite_locations">Favori Konumlar</string>
+    <string name="add_favorite">Favorilere Ekle</string>
+    <string name="remove_favorite">Favorilerden Çıkar</string>
+    <string name="no_favorites">Henüz favori konum yok</string>
+    <string name="add_favorite_message">Arama ekranından konum ekleyin</string>
+    
+    <!-- Ayarlar Ekranı -->
+    <string name="settings">Ayarlar</string>
+    <string name="language">Dil</string>
+    <string name="language_english">İngilizce</string>
+    <string name="language_turkish">Türkçe</string>
+    <string name="temperature_unit">Sıcaklık Birimi</string>
+    <string name="celsius">Celsius (°C)</string>
+    <string name="fahrenheit">Fahrenheit (°F)</string>
+    <string name="theme">Tema</string>
+    <string name="theme_light">Açık</string>
+    <string name="theme_dark">Koyu</string>
+    <string name="theme_system">Sistem Varsayılanı</string>
+    <string name="general_settings">Genel Ayarlar</string>
+    <string name="display_settings">Görünüm Ayarları</string>
+    
+    <!-- Hava Durumu Kaynakları -->
+    <string name="source">Kaynak</string>
+    <string name="weather_source_1">OpenWeather</string>
+    <string name="weather_source_2">WeatherAPI</string>
+    <string name="weather_source_3">AccuWeather</string>
+    
+    <!-- Hava Durumu Koşulları -->
+    <string name="clear">Açık</string>
+    <string name="cloudy">Bulutlu</string>
+    <string name="rainy">Yağmurlu</string>
+    <string name="snowy">Karlı</string>
+    <string name="thunderstorm">Fırtınalı</string>
+    <string name="partly_cloudy">Parçalı Bulutlu</string>
+    <string name="foggy">Sisli</string>
+    
+    <!-- Birimler -->
+    <string name="celsius_unit">°C</string>
+    <string name="fahrenheit_unit">°F</string>
+    <string name="humidity_unit">%</string>
+    <string name="wind_speed_unit_metric">km/s</string>
+    <string name="wind_speed_unit_imperial">mph</string>
+    <string name="precipitation_unit">mm</string>
+    <string name="pressure_unit">hPa</string>
+    <string name="visibility_unit">km</string>
+    
+    <!-- Günler -->
+    <string name="monday">Pazartesi</string>
+    <string name="tuesday">Salı</string>
+    <string name="wednesday">Çarşamba</string>
+    <string name="thursday">Perşembe</string>
+    <string name="friday">Cuma</string>
+    <string name="saturday">Cumartesi</string>
+    <string name="sunday">Pazar</string>
+    
+    <!-- Hata Mesajları -->
+    <string name="error_loading_weather">Hava durumu verileri yüklenirken hata oluştu</string>
+    <string name="error_network">Ağ hatası. Lütfen bağlantınızı kontrol edin.</string>
+    <string name="error_location_not_found">Konum bulunamadı</string>
+    <string name="retry">Tekrar Dene</string>
+    
+    <!-- Ortak -->
+    <string name="loading">Yükleniyor…</string>
+    <string name="refresh">Yenile</string>
+    <string name="search">Ara</string>
+    <string name="cancel">İptal</string>
+    <string name="save">Kaydet</string>
+    <string name="delete">Sil</string>
+    <string name="ok">Tamam</string>
+    <string name="last_updated">Son güncelleme: %s</string>
+</resources>
