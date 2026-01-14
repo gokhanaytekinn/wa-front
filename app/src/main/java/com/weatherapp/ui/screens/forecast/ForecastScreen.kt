@@ -125,6 +125,7 @@ fun ForecastContent(
 /**
  * Günlük tahmin kartı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayForecastCard(
     forecastDay: ForecastDay,
