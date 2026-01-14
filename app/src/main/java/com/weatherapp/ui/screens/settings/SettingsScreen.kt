@@ -96,6 +96,7 @@ fun SettingsScreen(
 /**
  * Dil ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageSetting(
     currentLanguage: String,
@@ -182,6 +183,7 @@ fun LanguageSetting(
 /**
  * Sıcaklık birimi ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemperatureUnitSetting(
     currentUnit: String,
@@ -268,6 +270,7 @@ fun TemperatureUnitSetting(
 /**
  * Tema ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSetting(
     currentTheme: String,
