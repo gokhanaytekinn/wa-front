@@ -67,7 +67,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp, top = 16.dp)
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                 )
             }
             
@@ -96,6 +96,7 @@ fun SettingsScreen(
 /**
  * Dil ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageSetting(
     currentLanguage: String,
@@ -182,6 +183,7 @@ fun LanguageSetting(
 /**
  * Sıcaklık birimi ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemperatureUnitSetting(
     currentUnit: String,
@@ -268,6 +270,7 @@ fun TemperatureUnitSetting(
 /**
  * Tema ayarı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSetting(
     currentTheme: String,

@@ -125,6 +125,7 @@ fun ForecastContent(
 /**
  * Günlük tahmin kartı
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayForecastCard(
     forecastDay: ForecastDay,
@@ -291,7 +292,7 @@ fun getWeatherIcon(condition: String): androidx.compose.ui.graphics.vector.Image
         condition.contains("cloud", ignoreCase = true) -> Icons.Default.Cloud
         condition.contains("rain", ignoreCase = true) -> Icons.Default.Umbrella
         condition.contains("snow", ignoreCase = true) -> Icons.Default.AcUnit
-        condition.contains("storm", ignoreCase = true) -> Icons.Default.ThunderstormRounded
+        condition.contains("storm", ignoreCase = true) -> Icons.Default.Thunderstorm
         else -> Icons.Default.Cloud
     }
 }
