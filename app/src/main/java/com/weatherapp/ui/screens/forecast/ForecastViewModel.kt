@@ -12,6 +12,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -51,36 +52,18 @@ class ForecastViewModel @Inject constructor(
      * Son seçilen konumu yükler ve tahmin verilerini getirir
      */
     private fun loadLastSelectedLocation() {
-        var lastCity: String? = null
-        var lastDistrict: String? = null
-        var hasLoadedInitialData = false
-        
         viewModelScope.launch {
-            launch {
-                preferencesRepository.lastSelectedCity.collect { city ->
-                    // Load data if city changed and we have a city
-                    if (city != null && city != lastCity) {
-                        lastCity = city
-                        loadForecastData(city, lastDistrict)
-                        hasLoadedInitialData = true
-                        // Update search query to show selected location
-                        updateSearchQueryForLocation(city, lastDistrict)
-                    }
-                }
-            }
-            launch {
-                preferencesRepository.lastSelectedDistrict.collect { district ->
-                    // Load data if district changed and we already have initial data
-                    if (hasLoadedInitialData && district != lastDistrict) {
-                        lastDistrict = district
-                        lastCity?.let { city ->
-                            loadForecastData(city, district)
-                            // Update search query to show selected location
-                            updateSearchQueryForLocation(city, district)
-                        }
-                    } else {
-                        lastDistrict = district
-                    }
+            // Use combine to get both city and district together
+            preferencesRepository.lastSelectedCity.combine(
+                preferencesRepository.lastSelectedDistrict
+            ) { city, district ->
+                Pair(city, district)
+            }.collect { (city, district) ->
+                // Load forecast data if we have a city
+                if (city != null) {
+                    loadForecastData(city, district)
+                    // Update search query to show selected location
+                    updateSearchQueryForLocation(city, district)
                 }
             }
         }

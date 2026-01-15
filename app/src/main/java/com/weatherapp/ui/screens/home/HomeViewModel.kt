@@ -12,6 +12,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -55,38 +56,21 @@ class HomeViewModel @Inject constructor(
      * Son seçilen konumu yükler
      */
     private fun loadLastSelectedLocation() {
-        var lastCity: String? = null
-        var lastDistrict: String? = null
-        var hasLoadedInitialData = false
-        
         viewModelScope.launch {
-            launch {
-                preferencesRepository.lastSelectedCity.collect { city ->
-                    _uiState.update { it.copy(selectedCity = city) }
-                    // Load data if city changed and we have a city
-                    if (city != null && city != lastCity) {
-                        lastCity = city
-                        loadWeatherData(city, lastDistrict)
-                        hasLoadedInitialData = true
-                        // Update search query to show selected location
-                        updateSearchQueryForLocation(city, lastDistrict)
-                    }
-                }
-            }
-            launch {
-                preferencesRepository.lastSelectedDistrict.collect { district ->
-                    _uiState.update { it.copy(selectedDistrict = district) }
-                    // Load data if district changed and we already have initial data
-                    if (hasLoadedInitialData && district != lastDistrict) {
-                        lastDistrict = district
-                        lastCity?.let { city ->
-                            loadWeatherData(city, district)
-                            // Update search query to show selected location
-                            updateSearchQueryForLocation(city, district)
-                        }
-                    } else {
-                        lastDistrict = district
-                    }
+            // Use combine to get both city and district together
+            preferencesRepository.lastSelectedCity.combine(
+                preferencesRepository.lastSelectedDistrict
+            ) { city, district ->
+                Pair(city, district)
+            }.collect { (city, district) ->
+                // Update UI state
+                _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
+                
+                // Load weather data if we have a city
+                if (city != null) {
+                    loadWeatherData(city, district)
+                    // Update search query to show selected location
+                    updateSearchQueryForLocation(city, district)
                 }
             }
         }
@@ -137,9 +121,16 @@ class HomeViewModel @Inject constructor(
      */
     private fun observeFavoriteStatus() {
         viewModelScope.launch {
-            preferencesRepository.favoriteLocations.collect { favorites ->
-                val currentLocation = "${_uiState.value.selectedCity}${_uiState.value.selectedDistrict?.let { ",$it" } ?: ""}"
-                _uiState.update { it.copy(isFavorite = favorites.contains(currentLocation)) }
+            // Combine location and favorites to avoid race conditions
+            combine(
+                preferencesRepository.lastSelectedCity,
+                preferencesRepository.lastSelectedDistrict,
+                preferencesRepository.favoriteLocations
+            ) { city, district, favorites ->
+                val currentLocation = "${city ?: ""}${district?.let { ",$it" } ?: ""}"
+                favorites.contains(currentLocation)
+            }.collect { isFavorite ->
+                _uiState.update { it.copy(isFavorite = isFavorite) }
             }
         }
     }
