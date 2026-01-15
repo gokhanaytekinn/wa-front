@@ -48,11 +48,6 @@ class WeatherRepository @Inject constructor(
                     errorResponse = errorResponse
                 ))
             }
-        } catch (e: NullPointerException) {
-            // Backend yanıt formatı hatalı - beklenen veri yapısı ile uyuşmuyor
-            emit(Resource.Error(
-                message = "Backend API formatı beklenen yapıyla uyuşmuyor. Lütfen backend ekibiyle iletişime geçin."
-            ))
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
         }
@@ -69,7 +64,15 @@ class WeatherRepository @Inject constructor(
         try {
             val response = apiService.getForecast(city, district, days = 5)
             if (response.isSuccessful && response.body() != null) {
-                emit(Resource.Success(response.body()!!))
+                val weatherData = response.body()!!
+                // Backend yanıt formatı doğrulaması
+                if (weatherData.sources == null || weatherData.location == null) {
+                    emit(Resource.Error(
+                        message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
+                    ))
+                } else {
+                    emit(Resource.Success(weatherData))
+                }
             } else {
                 val errorResponse = parseErrorResponse(response.errorBody()?.string())
                 emit(Resource.Error(
