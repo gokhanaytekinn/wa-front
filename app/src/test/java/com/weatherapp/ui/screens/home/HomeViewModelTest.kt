@@ -76,7 +76,7 @@ class HomeViewModelTest {
         val errorMessage = "Network error"
         val flow = flow {
             emit(Resource.Loading())
-            emit(Resource.Error<WeatherData>(errorMessage))
+            emit(Resource.Error<WeatherData>(errorMessage, errorResponse = null))
         }
         whenever(weatherRepository.getCurrentWeather(any(), any())).thenReturn(flow)
         

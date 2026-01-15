@@ -173,3 +173,21 @@ data class LocationSearchResult(
         }
     }
 }
+
+/**
+ * API hata yanıtı
+ * Backend'den dönen hata mesajlarını temsil eder
+ */
+data class ApiErrorResponse(
+    @SerializedName("message")
+    val message: String,
+    
+    @SerializedName("status")
+    val status: Int,
+    
+    @SerializedName("timestamp")
+    val timestamp: String? = null,
+    
+    @SerializedName("path")
+    val path: String? = null
+)
