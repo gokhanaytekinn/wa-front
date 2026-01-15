@@ -45,6 +45,9 @@ fun ForecastScreen(
             )
         }
     ) { paddingValues ->
+        val weatherData = uiState.weatherData
+        val hasValidData = weatherData != null && !weatherData.sources.isNullOrEmpty()
+        
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -56,9 +59,9 @@ fun ForecastScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                uiState.weatherData != null && !uiState.weatherData!!.sources.isNullOrEmpty() -> {
+                hasValidData -> {
                     ForecastContent(
-                        weatherData = uiState.weatherData!!,
+                        weatherData = weatherData!!,
                         temperatureUnit = uiState.temperatureUnit,
                         modifier = Modifier.fillMaxSize()
                     )
