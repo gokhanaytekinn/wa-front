@@ -2,6 +2,7 @@ package com.weatherapp.di
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.weatherapp.data.adapter.TimestampAdapter
 import com.weatherapp.data.api.WeatherApiService
 import dagger.Module
 import dagger.Provides
@@ -36,6 +37,8 @@ object NetworkModule {
     fun provideGson(): Gson {
         return GsonBuilder()
             .setLenient()
+            .registerTypeAdapter(Long::class.java, TimestampAdapter())
+            .registerTypeAdapter(Long::class.javaObjectType, TimestampAdapter())
             .create()
     }
     
