@@ -44,25 +44,36 @@ class WeatherDataDeserializer : JsonDeserializer<WeatherData> {
     ): WeatherData {
         val jsonObject = json.asJsonObject
         
-        // Backend'in gönderdiği flat formatı tespit et
-        val isFlat = jsonObject.has("city") && 
-                     jsonObject.has("temperature") && 
-                     !jsonObject.has("location") && 
-                     !jsonObject.has("sources")
+        // Backend'in gönderdiği forecast formatı tespit et (forecasts array ile)
+        val isForecastFlat = jsonObject.has("city") && 
+                             jsonObject.has("forecasts") && 
+                             !jsonObject.has("location")
         
-        return if (isFlat) {
-            // Flat formatı nested yapıya dönüştür
-            deserializeFlatFormat(jsonObject, context)
-        } else {
-            // Normal nested formatı kullan
-            deserializeNestedFormat(jsonObject, context)
+        // Backend'in gönderdiği yeni multi-source formatı tespit et (sources array ile)
+        val isMultiSourceFlat = jsonObject.has("city") && 
+                                jsonObject.has("temperature") && 
+                                jsonObject.has("sources") &&
+                                !jsonObject.has("location")
+        
+        // Backend'in gönderdiği current weather flat formatı tespit et (tek kaynak)
+        val isCurrentFlat = jsonObject.has("city") && 
+                            jsonObject.has("temperature") && 
+                            !jsonObject.has("location") && 
+                            !jsonObject.has("sources") &&
+                            !jsonObject.has("forecasts")
+        
+        return when {
+            isForecastFlat -> deserializeFlatForecastFormat(jsonObject, context)
+            isMultiSourceFlat -> deserializeMultiSourceFlatFormat(jsonObject, context)
+            isCurrentFlat -> deserializeFlatCurrentFormat(jsonObject, context)
+            else -> deserializeNestedFormat(jsonObject, context)
         }
     }
     
     /**
-     * Flat backend formatını nested yapıya dönüştürür
+     * Flat backend current weather formatını nested yapıya dönüştürür
      */
-    private fun deserializeFlatFormat(
+    private fun deserializeFlatCurrentFormat(
         json: JsonObject,
         context: JsonDeserializationContext
     ): WeatherData {
@@ -98,6 +109,156 @@ class WeatherDataDeserializer : JsonDeserializer<WeatherData> {
         
         // Timestamp'i parse et (String veya Long olabilir)
         val timestamp = parseTimestamp(json.get("timestamp"), context)
+        
+        return WeatherData(
+            location = location,
+            sources = listOf(source),
+            timestamp = timestamp
+        )
+    }
+    
+    /**
+     * Multi-source flat backend formatını nested yapıya dönüştürür
+     * Backend'den gelen format:
+     * {
+     *   "city": "İstanbul",
+     *   "district": "İstanbul",
+     *   "temperature": 10.0,
+     *   "sources": [
+     *     {"source": "Open-Meteo", "temperature": 10.1, ...},
+     *     {"source": "Google Weather", "temperature": 9.89, ...}
+     *   ]
+     * }
+     */
+    private fun deserializeMultiSourceFlatFormat(
+        json: JsonObject,
+        context: JsonDeserializationContext
+    ): WeatherData {
+        // Location oluştur
+        val location = Location(
+            city = json.get("city")?.asString ?: "",
+            district = json.get("district")?.asString,
+            country = "Turkey",
+            latitude = 0.0,
+            longitude = 0.0
+        )
+        
+        // Sources array'ini parse et
+        val sourcesArray = json.getAsJsonArray("sources")
+        val weatherSources = mutableListOf<WeatherSource>()
+        
+        sourcesArray?.forEach { sourceElement ->
+            val sourceObj = sourceElement.asJsonObject
+            
+            // Her kaynak için CurrentWeather oluştur
+            val currentWeather = CurrentWeather(
+                temperature = sourceObj.get("temperature")?.asDouble ?: 0.0,
+                feelsLike = sourceObj.get("feelsLike")?.asDouble ?: 0.0,
+                humidity = sourceObj.get("humidity")?.asInt ?: 0,
+                windSpeed = sourceObj.get("windSpeed")?.asDouble ?: 0.0,
+                precipitation = sourceObj.get("precipitation")?.asDouble ?: 0.0,
+                pressure = sourceObj.get("pressure")?.asInt ?: 0,
+                visibility = sourceObj.get("visibility")?.asDouble ?: 0.0,
+                uvIndex = sourceObj.get("uvIndex")?.asInt ?: 0,
+                condition = sourceObj.get("description")?.asString ?: "",
+                icon = sourceObj.get("weatherCode")?.asString
+            )
+            
+            // WeatherSource oluştur
+            val weatherSource = WeatherSource(
+                sourceName = sourceObj.get("source")?.asString ?: "Unknown",
+                current = currentWeather,
+                forecast = null
+            )
+            
+            weatherSources.add(weatherSource)
+        }
+        
+        // Timestamp'i parse et
+        val timestamp = parseTimestamp(json.get("timestamp"), context)
+        
+        return WeatherData(
+            location = location,
+            sources = weatherSources,
+            timestamp = timestamp
+        )
+    }
+    
+    /**
+     * Flat backend forecast formatını nested yapıya dönüştürür
+     * Backend'den gelen forecast formatı:
+     * {
+     *   "city": "Ankara",
+     *   "district": "Lamphun",
+     *   "temperatureUnit": "C",
+     *   "forecasts": [{ "date": "...", "maxTemperature": ..., ... }],
+     *   "source": "Open-Meteo"
+     * }
+     */
+    private fun deserializeFlatForecastFormat(
+        json: JsonObject,
+        context: JsonDeserializationContext
+    ): WeatherData {
+        // Location oluştur
+        val location = Location(
+            city = json.get("city")?.asString ?: "",
+            district = json.get("district")?.asString,
+            country = "Turkey", // Backend göndermediği için varsayılan
+            latitude = 0.0,
+            longitude = 0.0
+        )
+        
+        // Forecasts array'ini parse et
+        val forecastsArray = json.getAsJsonArray("forecasts")
+        val forecastDays = mutableListOf<ForecastDay>()
+        
+        forecastsArray?.forEach { forecastElement ->
+            val forecastObj = forecastElement.asJsonObject
+            
+            // DayWeather oluştur
+            val dayWeather = DayWeather(
+                maxTemp = forecastObj.get("maxTemperature")?.asDouble ?: 0.0,
+                minTemp = forecastObj.get("minTemperature")?.asDouble ?: 0.0,
+                avgTemp = forecastObj.get("avgTemperature")?.asDouble ?: 0.0,
+                condition = forecastObj.get("description")?.asString ?: "",
+                icon = forecastObj.get("weatherCode")?.asString,
+                precipitationChance = forecastObj.get("precipitationChance")?.asInt ?: 0,
+                humidity = forecastObj.get("humidity")?.asInt ?: 0
+            )
+            
+            // ForecastDay oluştur
+            val forecastDay = ForecastDay(
+                date = forecastObj.get("date")?.asString ?: "",
+                day = dayWeather,
+                hourly = null // Backend hourly göndermediği için null
+            )
+            
+            forecastDays.add(forecastDay)
+        }
+        
+        // Dummy current weather oluştur (forecast'ta current data yok)
+        val currentWeather = CurrentWeather(
+            temperature = 0.0,
+            feelsLike = 0.0,
+            humidity = 0,
+            windSpeed = 0.0,
+            precipitation = 0.0,
+            pressure = 0,
+            visibility = 0.0,
+            uvIndex = 0,
+            condition = "",
+            icon = null
+        )
+        
+        // WeatherSource oluştur
+        val source = WeatherSource(
+            sourceName = json.get("source")?.asString ?: "Unknown",
+            current = currentWeather,
+            forecast = forecastDays
+        )
+        
+        // Timestamp
+        val timestamp = System.currentTimeMillis()
         
         return WeatherData(
             location = location,

@@ -1,9 +1,16 @@
 package com.weatherapp.ui.screens.forecast
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,53 +40,65 @@ fun ForecastScreen(
     viewModel: ForecastViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.five_day_forecast)) },
-                actions = {
-                    // Yenileme butonu eklendi ancak loadLastSelectedLocation public değil
-                    // Bu nedenle şimdilik boş bırakıldı
-                }
+                title = { Text(stringResource(R.string.five_day_forecast)) }
             )
         }
     ) { paddingValues ->
         val weatherData = uiState.weatherData
         val hasValidData = weatherData != null && !weatherData.sources.isNullOrEmpty()
         
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                hasValidData -> {
-                    ForecastContent(
-                        weatherData = weatherData!!,
-                        temperatureUnit = uiState.temperatureUnit,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                else -> {
-                    EmptyStateView(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            }
+            // Arama kutusu
+            ForecastSearchBar(
+                query = searchQuery,
+                onQueryChange = { viewModel.updateSearchQuery(it) },
+                searchResults = uiState.searchResults,
+                onLocationSelected = { viewModel.selectLocation(it) },
+                isSearching = uiState.isSearching,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
             
-            // Hata dialogu - error olduğunda göster
-            if (uiState.error != null) {
-                ErrorDialog(
-                    errorResponse = uiState.errorResponse,
-                    errorMessage = uiState.error,
-                    onDismiss = { viewModel.clearError() }
-                )
+            // Ana içerik
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                    hasValidData -> {
+                        ForecastContent(
+                            weatherData = weatherData!!,
+                            temperatureUnit = uiState.temperatureUnit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    else -> {
+                        EmptyStateView(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+                
+                // Hata dialogu - error olduğunda göster
+                if (uiState.error != null) {
+                    ErrorDialog(
+                        errorResponse = uiState.errorResponse,
+                        errorMessage = uiState.error,
+                        onDismiss = { viewModel.clearError() }
+                    )
+                }
             }
         }
     }
@@ -356,5 +375,83 @@ fun EmptyStateView(
             text = stringResource(R.string.search_location),
             style = MaterialTheme.typography.bodyLarge
         )
+    }
+}
+
+/**
+ * Arama kutusu composable
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ForecastSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    searchResults: List<com.weatherapp.data.model.LocationSearchResult>,
+    onLocationSelected: (com.weatherapp.data.model.LocationSearchResult) -> Unit,
+    isSearching: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.search_location)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = null)
+                    }
+                }
+            },
+            singleLine = true,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+        )
+        
+        // Arama sonuçları
+        androidx.compose.animation.AnimatedVisibility(
+            visible = searchResults.isNotEmpty() || isSearching,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                if (isSearching) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 300.dp)
+                    ) {
+                        items(searchResults) { result ->
+                            ListItem(
+                                headlineContent = { Text(result.getDisplayName()) },
+                                supportingContent = { Text(result.country) },
+                                leadingContent = {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null)
+                                },
+                                modifier = Modifier.clickable {
+                                    onLocationSelected(result)
+                                }
+                            )
+                            if (result != searchResults.last()) {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -12,8 +12,10 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -45,6 +47,9 @@ class HomeViewModel @Inject constructor(
         
         // Sıcaklık birimini dinle
         observeTemperatureUnit()
+        
+        // Favori durumunu gözlemle
+        observeFavoriteStatus()
     }
     
     /**
@@ -52,13 +57,35 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            preferencesRepository.lastSelectedCity.collect { city ->
+            // Use combine to get both city and district together
+            preferencesRepository.lastSelectedCity.combine(
+                preferencesRepository.lastSelectedDistrict
+            ) { city, district ->
+                Pair(city, district)
+            }
+            .distinctUntilChanged() // Only emit when values actually change
+            .collect { (city, district) ->
+                // Update UI state
+                _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
+                
+                // Load weather data if we have a city
                 if (city != null) {
-                    preferencesRepository.lastSelectedDistrict.collect { district ->
-                        loadWeatherData(city, district)
-                    }
+                    loadWeatherData(city, district)
+                    // Update search query to show selected location
+                    updateSearchQueryForLocation(city, district)
                 }
             }
+        }
+    }
+    
+    /**
+     * Konum için arama sorgusunu günceller
+     */
+    private fun updateSearchQueryForLocation(city: String, district: String?) {
+        _searchQuery.value = if (district != null) {
+            "$district, $city"
+        } else {
+            city
         }
     }
     
@@ -87,6 +114,27 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.temperatureUnit.collect { unit ->
                 _uiState.update { it.copy(temperatureUnit = unit) }
+            }
+        }
+    }
+    
+    /**
+     * Favori durumunu gözlemler
+     */
+    private fun observeFavoriteStatus() {
+        viewModelScope.launch {
+            // Combine location and favorites to avoid race conditions
+            combine(
+                preferencesRepository.lastSelectedCity,
+                preferencesRepository.lastSelectedDistrict,
+                preferencesRepository.favoriteLocations
+            ) { city, district, favorites ->
+                val currentLocation = "${city ?: ""}${district?.let { ",$it" } ?: ""}"
+                favorites.contains(currentLocation)
+            }
+            .distinctUntilChanged() // Only update when favorite status actually changes
+            .collect { isFavorite ->
+                _uiState.update { it.copy(isFavorite = isFavorite) }
             }
         }
     }
@@ -176,7 +224,8 @@ class HomeViewModel @Inject constructor(
      */
     fun selectLocation(location: LocationSearchResult) {
         loadWeatherData(location.city, location.district)
-        _searchQuery.value = ""
+        // Seçilen konumu arama kutusunda göster
+        _searchQuery.value = location.getDisplayName()
         _uiState.update { it.copy(searchResults = emptyList()) }
     }
     
@@ -194,14 +243,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val currentLocation = "${_uiState.value.selectedCity}${_uiState.value.selectedDistrict?.let { ",$it" } ?: ""}"
             
-            preferencesRepository.favoriteLocations.collect { favorites ->
-                if (favorites.contains(currentLocation)) {
-                    preferencesRepository.removeFavoriteLocation(currentLocation)
-                    _uiState.update { it.copy(isFavorite = false) }
-                } else {
-                    preferencesRepository.addFavoriteLocation(currentLocation)
-                    _uiState.update { it.copy(isFavorite = true) }
-                }
+            // Use first() instead of collect to get a single value
+            val favorites = preferencesRepository.favoriteLocations.first()
+            if (favorites.contains(currentLocation)) {
+                preferencesRepository.removeFavoriteLocation(currentLocation)
+                _uiState.update { it.copy(isFavorite = false) }
+            } else {
+                preferencesRepository.addFavoriteLocation(currentLocation)
+                _uiState.update { it.copy(isFavorite = true) }
             }
         }
     }
