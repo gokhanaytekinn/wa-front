@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-15
+
+### Changed
+- **wa-core Integration**: Updated API base URL to include v1 version prefix
+  - Changed BASE_URL from `/api/` to `/api/v1/`
+  - Ensures compatibility with wa-core backend API structure
+  - All endpoints now properly versioned:
+    - `GET /api/v1/weather/current`
+    - `GET /api/v1/weather/forecast`
+    - `GET /api/v1/location/search`
+
+### Added
+- Comprehensive integration documentation (WA_CORE_INTEGRATION.md)
+  - Detailed location search integration guide
+  - API compatibility verification
+  - Testing recommendations
+  - Configuration instructions
+  - Troubleshooting guide
+
+### Fixed
+- API endpoint path alignment with wa-core backend specification
+- Improved documentation clarity for backend URL configuration
+
 ## [1.0.0] - 2026-01-14
 
 ### Added
