@@ -56,7 +56,7 @@ fun ForecastScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                uiState.weatherData != null && uiState.weatherData!!.sources.isNotEmpty() -> {
+                uiState.weatherData != null && !uiState.weatherData!!.sources.isNullOrEmpty() -> {
                     ForecastContent(
                         weatherData = uiState.weatherData!!,
                         temperatureUnit = uiState.temperatureUnit,
