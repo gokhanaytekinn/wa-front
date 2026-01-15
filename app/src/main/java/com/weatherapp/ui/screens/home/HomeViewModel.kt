@@ -62,7 +62,9 @@ class HomeViewModel @Inject constructor(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }.collect { (city, district) ->
+            }
+            .distinctUntilChanged() // Only emit when values actually change
+            .collect { (city, district) ->
                 // Update UI state
                 _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
                 
@@ -129,7 +131,9 @@ class HomeViewModel @Inject constructor(
             ) { city, district, favorites ->
                 val currentLocation = "${city ?: ""}${district?.let { ",$it" } ?: ""}"
                 favorites.contains(currentLocation)
-            }.collect { isFavorite ->
+            }
+            .distinctUntilChanged() // Only update when favorite status actually changes
+            .collect { isFavorite ->
                 _uiState.update { it.copy(isFavorite = isFavorite) }
             }
         }

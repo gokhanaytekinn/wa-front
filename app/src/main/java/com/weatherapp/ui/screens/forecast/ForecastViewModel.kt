@@ -58,7 +58,9 @@ class ForecastViewModel @Inject constructor(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }.collect { (city, district) ->
+            }
+            .distinctUntilChanged() // Only emit when values actually change
+            .collect { (city, district) ->
                 // Load forecast data if we have a city
                 if (city != null) {
                     loadForecastData(city, district)
