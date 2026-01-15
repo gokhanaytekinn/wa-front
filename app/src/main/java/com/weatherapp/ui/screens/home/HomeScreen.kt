@@ -205,20 +205,24 @@ fun WeatherContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Konum bilgisi
-        item {
-            LocationHeader(
-                location = weatherData.location,
-                modifier = Modifier.fillMaxWidth()
-            )
+        weatherData.location?.let { location ->
+            item {
+                LocationHeader(
+                    location = location,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
         
         // Her kaynak için kart
-        items(weatherData.sources) { source ->
-            WeatherSourceCard(
-                source = source,
-                temperatureUnit = temperatureUnit,
-                modifier = Modifier.fillMaxWidth()
-            )
+        weatherData.sources?.let { sources ->
+            items(sources) { source ->
+                WeatherSourceCard(
+                    source = source,
+                    temperatureUnit = temperatureUnit,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }

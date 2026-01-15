@@ -8,10 +8,10 @@ import com.google.gson.annotations.SerializedName
  */
 data class WeatherData(
     @SerializedName("location")
-    val location: Location,
+    val location: Location?,
     
     @SerializedName("sources")
-    val sources: List<WeatherSource>,
+    val sources: List<WeatherSource>?,
     
     @SerializedName("timestamp")
     val timestamp: Long

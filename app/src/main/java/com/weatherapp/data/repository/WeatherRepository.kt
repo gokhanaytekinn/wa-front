@@ -32,7 +32,15 @@ class WeatherRepository @Inject constructor(
         try {
             val response = apiService.getCurrentWeather(city, district)
             if (response.isSuccessful && response.body() != null) {
-                emit(Resource.Success(response.body()!!))
+                val weatherData = response.body()!!
+                // Backend yanıt formatı doğrulaması
+                if (!isValidWeatherData(weatherData)) {
+                    emit(Resource.Error(
+                        message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
+                    ))
+                } else {
+                    emit(Resource.Success(weatherData))
+                }
             } else {
                 val errorResponse = parseErrorResponse(response.errorBody()?.string())
                 emit(Resource.Error(
@@ -56,7 +64,15 @@ class WeatherRepository @Inject constructor(
         try {
             val response = apiService.getForecast(city, district, days = 5)
             if (response.isSuccessful && response.body() != null) {
-                emit(Resource.Success(response.body()!!))
+                val weatherData = response.body()!!
+                // Backend yanıt formatı doğrulaması
+                if (!isValidWeatherData(weatherData)) {
+                    emit(Resource.Error(
+                        message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
+                    ))
+                } else {
+                    emit(Resource.Success(weatherData))
+                }
             } else {
                 val errorResponse = parseErrorResponse(response.errorBody()?.string())
                 emit(Resource.Error(
@@ -95,6 +111,15 @@ class WeatherRepository @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
         }
+    }
+    
+    /**
+     * WeatherData yanıt yapısını doğrular
+     * @param weatherData Doğrulanacak WeatherData
+     * @return Veri geçerliyse true, değilse false
+     */
+    private fun isValidWeatherData(weatherData: WeatherData): Boolean {
+        return weatherData.sources != null && weatherData.location != null
     }
     
     /**
