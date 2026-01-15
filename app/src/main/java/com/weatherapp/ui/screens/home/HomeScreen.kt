@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.weatherapp.R
 import com.weatherapp.data.model.WeatherSource
+import com.weatherapp.ui.components.ErrorDialog
 import com.weatherapp.ui.components.WeatherSourceCard
 
 /**
@@ -85,17 +86,6 @@ fun HomeScreen(
                         CircularProgressIndicator()
                     }
                 }
-                uiState.error != null -> {
-                    ErrorView(
-                        error = uiState.error!!,
-                        onRetry = {
-                            uiState.selectedCity?.let { city ->
-                                viewModel.loadWeatherData(city, uiState.selectedDistrict)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
                 uiState.weatherData != null -> {
                     WeatherContent(
                         weatherData = uiState.weatherData!!,
@@ -108,6 +98,15 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+            }
+            
+            // Hata dialogu - error olduğunda göster
+            if (uiState.error != null) {
+                ErrorDialog(
+                    errorResponse = uiState.errorResponse,
+                    errorMessage = uiState.error,
+                    onDismiss = { viewModel.clearError() }
+                )
             }
         }
     }

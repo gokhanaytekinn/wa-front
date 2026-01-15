@@ -89,6 +89,10 @@
     <string name="error_network">Ağ hatası. Lütfen bağlantınızı kontrol edin.</string>
     <string name="error_location_not_found">Konum bulunamadı</string>
     <string name="retry">Tekrar Dene</string>
+    <string name="error_title">Hata</string>
+    <string name="error_message">Mesaj</string>
+    <string name="error_status">Durum Kodu</string>
+    <string name="error_path">Yol</string>
     
     <!-- Ortak -->
     <string name="loading">Yükleniyor…</string>

@@ -123,7 +123,8 @@ class HomeViewModel @Inject constructor(
                         _uiState.update { 
                             it.copy(
                                 isLoading = false,
-                                error = resource.message
+                                error = resource.message,
+                                errorResponse = resource.errorResponse
                             )
                         }
                     }
@@ -183,7 +184,7 @@ class HomeViewModel @Inject constructor(
      * Hata mesajını temizler
      */
     fun clearError() {
-        _uiState.update { it.copy(error = null) }
+        _uiState.update { it.copy(error = null, errorResponse = null) }
     }
     
     /**
@@ -213,6 +214,7 @@ data class HomeUiState(
     val weatherData: WeatherData? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
+    val errorResponse: com.weatherapp.data.model.ApiErrorResponse? = null,
     val searchResults: List<LocationSearchResult> = emptyList(),
     val isSearching: Boolean = false,
     val selectedCity: String? = null,

@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.weatherapp.R
 import com.weatherapp.data.model.ForecastDay
 import com.weatherapp.data.model.HourlyWeather
+import com.weatherapp.ui.components.ErrorDialog
 import com.weatherapp.ui.components.formatTemperature
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -55,15 +56,6 @@ fun ForecastScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                uiState.error != null -> {
-                    ErrorView(
-                        error = uiState.error!!,
-                        onRetry = { 
-                            // Yenileme - şimdilik boş
-                        },
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
                 uiState.weatherData != null && uiState.weatherData!!.sources.isNotEmpty() -> {
                     ForecastContent(
                         weatherData = uiState.weatherData!!,
@@ -76,6 +68,15 @@ fun ForecastScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
+            }
+            
+            // Hata dialogu - error olduğunda göster
+            if (uiState.error != null) {
+                ErrorDialog(
+                    errorResponse = uiState.errorResponse,
+                    errorMessage = uiState.error,
+                    onDismiss = { viewModel.clearError() }
+                )
             }
         }
     }

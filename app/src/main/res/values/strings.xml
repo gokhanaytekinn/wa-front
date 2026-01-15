@@ -89,6 +89,10 @@
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_location_not_found">Location not found</string>
     <string name="retry">Retry</string>
+    <string name="error_title">Error</string>
+    <string name="error_message">Message</string>
+    <string name="error_status">Status Code</string>
+    <string name="error_path">Path</string>
     
     <!-- Common -->
     <string name="loading">Loading…</string>

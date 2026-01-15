@@ -1,6 +1,8 @@
 package com.weatherapp.data.repository
 
+import com.google.gson.Gson
 import com.weatherapp.data.api.WeatherApiService
+import com.weatherapp.data.model.ApiErrorResponse
 import com.weatherapp.data.model.LocationSearchResult
 import com.weatherapp.data.model.WeatherData
 import com.weatherapp.util.Resource
@@ -15,7 +17,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class WeatherRepository @Inject constructor(
-    private val apiService: WeatherApiService
+    private val apiService: WeatherApiService,
+    private val gson: Gson
 ) {
     
     /**
@@ -31,7 +34,11 @@ class WeatherRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 emit(Resource.Success(response.body()!!))
             } else {
-                emit(Resource.Error(message = "Hava durumu verileri alınamadı"))
+                val errorResponse = parseErrorResponse(response.errorBody()?.string())
+                emit(Resource.Error(
+                    message = errorResponse?.message ?: "Hava durumu verileri alınamadı",
+                    errorResponse = errorResponse
+                ))
             }
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
@@ -51,7 +58,11 @@ class WeatherRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 emit(Resource.Success(response.body()!!))
             } else {
-                emit(Resource.Error(message = "Tahmin verileri alınamadı"))
+                val errorResponse = parseErrorResponse(response.errorBody()?.string())
+                emit(Resource.Error(
+                    message = errorResponse?.message ?: "Tahmin verileri alınamadı",
+                    errorResponse = errorResponse
+                ))
             }
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
@@ -75,10 +86,31 @@ class WeatherRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 emit(Resource.Success(response.body()!!))
             } else {
-                emit(Resource.Error(message = "Konum araması başarısız"))
+                val errorResponse = parseErrorResponse(response.errorBody()?.string())
+                emit(Resource.Error(
+                    message = errorResponse?.message ?: "Konum araması başarısız",
+                    errorResponse = errorResponse
+                ))
             }
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
+        }
+    }
+    
+    /**
+     * Hata yanıtını parse eder
+     * @param errorBody Hata yanıtı body
+     * @return ApiErrorResponse veya null
+     */
+    private fun parseErrorResponse(errorBody: String?): ApiErrorResponse? {
+        return try {
+            if (errorBody != null) {
+                gson.fromJson(errorBody, ApiErrorResponse::class.java)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 }
