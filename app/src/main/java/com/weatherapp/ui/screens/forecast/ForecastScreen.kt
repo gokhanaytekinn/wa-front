@@ -92,7 +92,7 @@ fun ForecastContent(
     modifier: Modifier = Modifier
 ) {
     // İlk kaynağın tahmin verilerini kullan
-    val forecasts = weatherData.sources.firstOrNull()?.forecast ?: emptyList()
+    val forecasts = weatherData.sources?.firstOrNull()?.forecast ?: emptyList()
     
     LazyColumn(
         modifier = modifier,
@@ -100,16 +100,18 @@ fun ForecastContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Konum bilgisi
-        item {
-            Text(
-                text = buildString {
-                    append(weatherData.location.city)
-                    weatherData.location.district?.let { append(", $it") }
-                },
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        weatherData.location?.let { location ->
+            item {
+                Text(
+                    text = buildString {
+                        append(location.city)
+                        location.district?.let { append(", $it") }
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
         }
         
         // Her gün için kart
