@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added validation in WeatherRepository to check for null fields before returning success
   - Updated UI components to handle null location and sources gracefully
   - Displays clear error message when backend API format is incompatible
+- Added WeatherDataDeserializer to handle flat backend response format
+  - Automatically transforms flat JSON response (single weather object) to nested structure expected by frontend
+  - Supports both flat format from actual backend and nested format from API specification
+  - Ensures backward compatibility with both API formats
 
 ## [1.0.0] - 2026-01-14
 

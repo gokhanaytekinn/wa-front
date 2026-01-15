@@ -3,7 +3,9 @@ package com.weatherapp.di
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.weatherapp.data.adapter.TimestampAdapter
+import com.weatherapp.data.adapter.WeatherDataDeserializer
 import com.weatherapp.data.api.WeatherApiService
+import com.weatherapp.data.model.WeatherData
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,6 +41,7 @@ object NetworkModule {
             .setLenient()
             .registerTypeAdapter(Long::class.java, TimestampAdapter())
             .registerTypeAdapter(Long::class.javaObjectType, TimestampAdapter())
+            .registerTypeAdapter(WeatherData::class.java, WeatherDataDeserializer())
             .create()
     }
     
