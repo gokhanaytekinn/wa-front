@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed timestamp parsing error when backend sends ISO 8601 string format instead of Unix epoch milliseconds
+  - Added flexible TimestampAdapter that handles both Long (1640000000000) and String ("2026-01-15T23:15") timestamp formats
+  - Prevents `java.lang.NumberFormatException` when backend format doesn't match API specification
+
 ## [1.0.0] - 2026-01-14
 
 ### Added
