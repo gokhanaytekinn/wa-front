@@ -104,15 +104,16 @@ fun NavigationGraph(
             composable(Screen.Favorites.route) {
                 FavoritesScreen(
                     onLocationClick = { city, district ->
-                        // Ana sayfaya gidip konumu seç
-                        // Bu fonksiyonellik için HomeViewModel'e erişim gerekiyor
-                        // Şimdilik sadece ana sayfaya yönlendir
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        // Konumu kaydet ve ana sayfaya git
+                        scope.launch {
+                            preferencesRepository.setLastSelectedLocation(city, district)
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 )

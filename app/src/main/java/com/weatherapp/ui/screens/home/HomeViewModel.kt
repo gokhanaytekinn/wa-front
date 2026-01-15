@@ -46,6 +46,9 @@ class HomeViewModel @Inject constructor(
         
         // Sıcaklık birimini dinle
         observeTemperatureUnit()
+        
+        // Favori durumunu gözlemle
+        observeFavoriteStatus()
     }
     
     /**
@@ -65,6 +68,8 @@ class HomeViewModel @Inject constructor(
                         lastCity = city
                         loadWeatherData(city, lastDistrict)
                         hasLoadedInitialData = true
+                        // Update search query to show selected location
+                        updateSearchQueryForLocation(city, lastDistrict)
                     }
                 }
             }
@@ -76,12 +81,25 @@ class HomeViewModel @Inject constructor(
                         lastDistrict = district
                         lastCity?.let { city ->
                             loadWeatherData(city, district)
+                            // Update search query to show selected location
+                            updateSearchQueryForLocation(city, district)
                         }
                     } else {
                         lastDistrict = district
                     }
                 }
             }
+        }
+    }
+    
+    /**
+     * Konum için arama sorgusunu günceller
+     */
+    private fun updateSearchQueryForLocation(city: String, district: String?) {
+        _searchQuery.value = if (district != null) {
+            "$district, $city"
+        } else {
+            city
         }
     }
     
@@ -110,6 +128,18 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.temperatureUnit.collect { unit ->
                 _uiState.update { it.copy(temperatureUnit = unit) }
+            }
+        }
+    }
+    
+    /**
+     * Favori durumunu gözlemler
+     */
+    private fun observeFavoriteStatus() {
+        viewModelScope.launch {
+            preferencesRepository.favoriteLocations.collect { favorites ->
+                val currentLocation = "${_uiState.value.selectedCity}${_uiState.value.selectedDistrict?.let { ",$it" } ?: ""}"
+                _uiState.update { it.copy(isFavorite = favorites.contains(currentLocation)) }
             }
         }
     }
@@ -199,7 +229,8 @@ class HomeViewModel @Inject constructor(
      */
     fun selectLocation(location: LocationSearchResult) {
         loadWeatherData(location.city, location.district)
-        _searchQuery.value = ""
+        // Seçilen konumu arama kutusunda göster
+        _searchQuery.value = location.getDisplayName()
         _uiState.update { it.copy(searchResults = emptyList()) }
     }
     
