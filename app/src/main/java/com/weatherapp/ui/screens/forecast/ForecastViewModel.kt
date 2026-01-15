@@ -39,11 +39,23 @@ class ForecastViewModel @Inject constructor(
      * Son seçilen konumu yükler ve tahmin verilerini getirir
      */
     private fun loadLastSelectedLocation() {
+        var currentCity: String? = null
+        var currentDistrict: String? = null
+        
         viewModelScope.launch {
-            preferencesRepository.lastSelectedCity.collect { city ->
-                if (city != null) {
-                    preferencesRepository.lastSelectedDistrict.collect { district ->
-                        loadForecastData(city, district)
+            launch {
+                preferencesRepository.lastSelectedCity.collect { city ->
+                    currentCity = city
+                    if (city != null) {
+                        loadForecastData(city, currentDistrict)
+                    }
+                }
+            }
+            launch {
+                preferencesRepository.lastSelectedDistrict.collect { district ->
+                    currentDistrict = district
+                    if (currentCity != null) {
+                        loadForecastData(currentCity!!, district)
                     }
                 }
             }

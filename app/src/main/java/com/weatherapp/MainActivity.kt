@@ -1,5 +1,6 @@
 package com.weatherapp
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import com.weatherapp.data.repository.PreferencesRepository
 import com.weatherapp.ui.navigation.NavigationGraph
 import com.weatherapp.ui.theme.WeatherAppTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.*
 import javax.inject.Inject
 
 /**
@@ -22,6 +24,8 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var preferencesRepository: PreferencesRepository
     
+    private var currentLanguage: String? = null
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -29,6 +33,23 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
         setContent {
+            // Dil durumunu yönet
+            var languageState by remember { mutableStateOf("en") }
+            
+            // Dil tercihini yükle ve değişiklikleri dinle
+            LaunchedEffect(Unit) {
+                preferencesRepository.language.collect { language ->
+                    languageState = language
+                    // Dil değiştiğinde locale'i güncelle
+                    if (currentLanguage != null && currentLanguage != language) {
+                        updateLocale(language)
+                        recreate() // Activity'yi yeniden oluştur
+                    }
+                    currentLanguage = language
+                    updateLocale(language)
+                }
+            }
+            
             // Tema durumunu yönet
             var themeState by remember { mutableStateOf("dark") }
             
@@ -54,5 +75,25 @@ class MainActivity : ComponentActivity() {
                 NavigationGraph(preferencesRepository = preferencesRepository)
             }
         }
+    }
+    
+    /**
+     * Uygulama dilini günceller
+     */
+    private fun updateLocale(language: String) {
+        val locale = when (language) {
+            "tr" -> Locale("tr", "TR")
+            else -> Locale("en", "US")
+        }
+        Locale.setDefault(locale)
+        
+        val config = resources.configuration
+        config.setLocale(locale)
+        
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(config, resources.displayMetrics)
+        
+        // Context'i de güncelle
+        createConfigurationContext(config)
     }
 }

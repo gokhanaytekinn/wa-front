@@ -125,7 +125,7 @@ fun WeatherDetailGrid(
             WeatherDetailItem(
                 icon = Icons.Default.Water,
                 label = stringResource(R.string.humidity),
-                value = "${weather.humidity}%",
+                value = if (weather.humidity > 0) "${weather.humidity}%" else stringResource(R.string.data_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -138,13 +138,13 @@ fun WeatherDetailGrid(
             WeatherDetailItem(
                 icon = Icons.Default.Air,
                 label = stringResource(R.string.wind_speed),
-                value = "${weather.windSpeed} ${stringResource(R.string.wind_speed_unit_metric)}",
+                value = if (weather.windSpeed > 0) "${weather.windSpeed} ${stringResource(R.string.wind_speed_unit_metric)}" else stringResource(R.string.data_not_available),
                 modifier = Modifier.weight(1f)
             )
             WeatherDetailItem(
                 icon = Icons.Default.Cloud,
                 label = stringResource(R.string.precipitation),
-                value = "${weather.precipitation} ${stringResource(R.string.precipitation_unit)}",
+                value = if (weather.precipitation > 0) "${weather.precipitation} ${stringResource(R.string.precipitation_unit)}" else stringResource(R.string.data_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -157,13 +157,13 @@ fun WeatherDetailGrid(
             WeatherDetailItem(
                 icon = Icons.Default.Compress,
                 label = stringResource(R.string.pressure),
-                value = "${weather.pressure} ${stringResource(R.string.pressure_unit)}",
+                value = if (weather.pressure > 0) "${weather.pressure} ${stringResource(R.string.pressure_unit)}" else stringResource(R.string.data_not_available),
                 modifier = Modifier.weight(1f)
             )
             WeatherDetailItem(
                 icon = Icons.Default.Visibility,
                 label = stringResource(R.string.visibility),
-                value = "${weather.visibility} ${stringResource(R.string.visibility_unit)}",
+                value = if (weather.visibility > 0) "${weather.visibility} ${stringResource(R.string.visibility_unit)}" else stringResource(R.string.data_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -172,7 +172,7 @@ fun WeatherDetailGrid(
         WeatherDetailItem(
             icon = Icons.Default.WbSunny,
             label = stringResource(R.string.uv_index),
-            value = weather.uvIndex.toString(),
+            value = if (weather.uvIndex > 0) weather.uvIndex.toString() else stringResource(R.string.data_not_available),
             modifier = Modifier.fillMaxWidth()
         )
     }

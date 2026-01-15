@@ -52,11 +52,23 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            preferencesRepository.lastSelectedCity.collect { city ->
-                if (city != null) {
-                    preferencesRepository.lastSelectedDistrict.collect { district ->
-                        loadWeatherData(city, district)
-                    }
+            launch {
+                preferencesRepository.lastSelectedCity.collect { city ->
+                    _uiState.update { it.copy(selectedCity = city) }
+                }
+            }
+            launch {
+                preferencesRepository.lastSelectedDistrict.collect { district ->
+                    _uiState.update { it.copy(selectedDistrict = district) }
+                }
+            }
+        }
+        
+        // Load weather data when both city and district are available
+        viewModelScope.launch {
+            _uiState.collect { state ->
+                if (state.selectedCity != null && state.weatherData == null) {
+                    loadWeatherData(state.selectedCity!!, state.selectedDistrict)
                 }
             }
         }
