@@ -24,9 +24,9 @@ object NetworkModule {
     
     /**
      * Base URL - Backend API adresi
-     * Not: Bu URL'yi gerçek backend API adresinizle değiştirin
+     * wa-core sistemiyle iletişim için yapılandırılmıştır
      */
-    private const val BASE_URL = "https://api.weatherapp.example.com/api/v1/"
+    private const val BASE_URL = "http://localhost:8080/api/"
     
     /**
      * Gson sağlayıcı
