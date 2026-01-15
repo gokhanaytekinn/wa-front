@@ -236,11 +236,138 @@ weatherData.location?.let { location ->
 
 ## Combined Impact
 
-Both fixes work together to create a robust error handling system:
+All three fixes work together to create a comprehensive solution:
 
-1. **TimestampAdapter**: Handles timestamp format variations
-2. **Nullable model fields**: Handles missing/null data in responses
-3. **Repository validation**: Catches malformed responses early
-4. **UI null safety**: Final defense layer in case something slips through
+1. **TimestampAdapter**: Handles timestamp format variations (Long vs String)
+2. **WeatherDataDeserializer**: Transforms flat backend response to nested structure
+3. **Nullable model fields**: Handles missing/null data as fallback
+4. **Repository validation**: Catches malformed responses as safety net
+5. **UI null safety**: Final defense layer in case something slips through
 
 The app now gracefully handles various backend API format issues and provides clear feedback to users instead of crashing.
+
+---
+
+## Problem 3: Flat vs Nested Response Structure
+
+### Issue
+User reported error "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor." even though backend was returning valid data.
+
+The backend sends a **flat JSON structure**:
+```json
+{
+  "city": "Ankara",
+  "district": "Ankara",
+  "temperature": 1.3,
+  "temperatureUnit": "C",
+  "feelsLike": -1.5,
+  "humidity": 86,
+  "windSpeed": 3.6,
+  "precipitation": 0,
+  "description": "Bulutlu",
+  "weatherCode": "3",
+  "source": "Open-Meteo",
+  "timestamp": "2026-01-15T23:45"
+}
+```
+
+But the frontend model expects a **nested structure** with separate Location and WeatherSource objects.
+
+### Root Cause
+The validation logic added in Problem 2 correctly detected that `location` and `sources` were null (because Gson couldn't map the flat structure), but this caused legitimate backend responses to be rejected.
+
+### Solution
+Created `WeatherDataDeserializer` to intelligently handle both formats:
+
+#### Detection Logic
+```kotlin
+val isFlat = jsonObject.has("city") && 
+             jsonObject.has("temperature") && 
+             !jsonObject.has("location") && 
+             !jsonObject.has("sources")
+```
+
+#### Transformation (Flat → Nested)
+```kotlin
+// Create Location from flat fields
+val location = Location(
+    city = json.get("city")?.asString ?: "",
+    district = json.get("district")?.asString,
+    country = "Turkey",
+    latitude = 0.0,
+    longitude = 0.0
+)
+
+// Create CurrentWeather from flat fields
+val currentWeather = CurrentWeather(
+    temperature = json.get("temperature")?.asDouble ?: 0.0,
+    feelsLike = json.get("feelsLike")?.asDouble ?: 0.0,
+    humidity = json.get("humidity")?.asInt ?: 0,
+    windSpeed = json.get("windSpeed")?.asDouble ?: 0.0,
+    precipitation = json.get("precipitation")?.asDouble ?: 0.0,
+    condition = json.get("description")?.asString ?: "",
+    icon = json.get("weatherCode")?.asString,
+    // Default values for missing fields
+    pressure = 0,
+    visibility = 0.0,
+    uvIndex = 0
+)
+
+// Create WeatherSource
+val source = WeatherSource(
+    sourceName = json.get("source")?.asString ?: "Unknown",
+    current = currentWeather,
+    forecast = null
+)
+
+// Build final WeatherData
+return WeatherData(
+    location = location,
+    sources = listOf(source),
+    timestamp = parseTimestamp(json.get("timestamp"))
+)
+```
+
+### Benefits
+1. **Automatic format detection**: No configuration needed
+2. **Transparent transformation**: Backend and frontend can use different formats
+3. **Backward compatible**: Still handles nested format from API spec
+4. **Default values**: Provides sensible defaults for missing fields
+5. **Works with TimestampAdapter**: Leverages existing timestamp parsing
+
+### Testing
+Created comprehensive test suite covering:
+- Flat format with String timestamp
+- Flat format with Long timestamp
+- Nested format (API spec)
+- Missing optional fields
+- Edge cases
+
+### Impact
+✅ Backend can continue using flat format without frontend changes
+✅ No more false "format error" messages for valid responses
+✅ Maintains compatibility with API specification format
+✅ Cleaner separation between API contract and implementation details
+✅ Easier to work with multiple backend versions
+
+## Final Architecture
+
+The complete solution provides three layers of compatibility:
+
+```
+Backend Response (Flat/Nested, String/Long timestamp)
+         ↓
+[WeatherDataDeserializer] - Format transformation
+         ↓
+[TimestampAdapter] - Timestamp parsing
+         ↓
+WeatherData (Nullable fields)
+         ↓
+[Repository Validation] - Safety net
+         ↓
+[UI Null Safety] - Defensive rendering
+         ↓
+User sees: Working app or clear error message
+```
+
+This multi-layer approach ensures maximum compatibility and resilience.
