@@ -44,6 +44,6 @@ interface WeatherApiService {
      */
     @GET("location/search")
     suspend fun searchLocations(
-        @Query("q") query: String
+        @Query("query") query: String
     ): Response<List<LocationSearchResult>>
 }
