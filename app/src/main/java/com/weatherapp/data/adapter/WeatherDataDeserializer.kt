@@ -47,10 +47,15 @@ class WeatherDataDeserializer : JsonDeserializer<WeatherData> {
         // Backend'in gönderdiği forecast formatı tespit et (forecasts array ile)
         val isForecastFlat = jsonObject.has("city") && 
                              jsonObject.has("forecasts") && 
-                             !jsonObject.has("location") && 
-                             !jsonObject.has("sources")
+                             !jsonObject.has("location")
         
-        // Backend'in gönderdiği current weather flat formatı tespit et
+        // Backend'in gönderdiği yeni multi-source formatı tespit et (sources array ile)
+        val isMultiSourceFlat = jsonObject.has("city") && 
+                                jsonObject.has("temperature") && 
+                                jsonObject.has("sources") &&
+                                !jsonObject.has("location")
+        
+        // Backend'in gönderdiği current weather flat formatı tespit et (tek kaynak)
         val isCurrentFlat = jsonObject.has("city") && 
                             jsonObject.has("temperature") && 
                             !jsonObject.has("location") && 
@@ -59,6 +64,7 @@ class WeatherDataDeserializer : JsonDeserializer<WeatherData> {
         
         return when {
             isForecastFlat -> deserializeFlatForecastFormat(jsonObject, context)
+            isMultiSourceFlat -> deserializeMultiSourceFlatFormat(jsonObject, context)
             isCurrentFlat -> deserializeFlatCurrentFormat(jsonObject, context)
             else -> deserializeNestedFormat(jsonObject, context)
         }
@@ -107,6 +113,73 @@ class WeatherDataDeserializer : JsonDeserializer<WeatherData> {
         return WeatherData(
             location = location,
             sources = listOf(source),
+            timestamp = timestamp
+        )
+    }
+    
+    /**
+     * Multi-source flat backend formatını nested yapıya dönüştürür
+     * Backend'den gelen format:
+     * {
+     *   "city": "İstanbul",
+     *   "district": "İstanbul",
+     *   "temperature": 10.0,
+     *   "sources": [
+     *     {"source": "Open-Meteo", "temperature": 10.1, ...},
+     *     {"source": "Google Weather", "temperature": 9.89, ...}
+     *   ]
+     * }
+     */
+    private fun deserializeMultiSourceFlatFormat(
+        json: JsonObject,
+        context: JsonDeserializationContext
+    ): WeatherData {
+        // Location oluştur
+        val location = Location(
+            city = json.get("city")?.asString ?: "",
+            district = json.get("district")?.asString,
+            country = "Turkey",
+            latitude = 0.0,
+            longitude = 0.0
+        )
+        
+        // Sources array'ini parse et
+        val sourcesArray = json.getAsJsonArray("sources")
+        val weatherSources = mutableListOf<WeatherSource>()
+        
+        sourcesArray?.forEach { sourceElement ->
+            val sourceObj = sourceElement.asJsonObject
+            
+            // Her kaynak için CurrentWeather oluştur
+            val currentWeather = CurrentWeather(
+                temperature = sourceObj.get("temperature")?.asDouble ?: 0.0,
+                feelsLike = sourceObj.get("feelsLike")?.asDouble ?: 0.0,
+                humidity = sourceObj.get("humidity")?.asInt ?: 0,
+                windSpeed = sourceObj.get("windSpeed")?.asDouble ?: 0.0,
+                precipitation = sourceObj.get("precipitation")?.asDouble ?: 0.0,
+                pressure = sourceObj.get("pressure")?.asInt ?: 0,
+                visibility = sourceObj.get("visibility")?.asDouble ?: 0.0,
+                uvIndex = sourceObj.get("uvIndex")?.asInt ?: 0,
+                condition = sourceObj.get("description")?.asString ?: "",
+                icon = sourceObj.get("weatherCode")?.asString
+            )
+            
+            // WeatherSource oluştur
+            val weatherSource = WeatherSource(
+                sourceName = sourceObj.get("source")?.asString ?: "Unknown",
+                current = currentWeather,
+                forecast = null
+            )
+            
+            weatherSources.add(weatherSource)
+        }
+        
+        // Timestamp'i parse et
+        val timestamp = parseTimestamp(json.get("timestamp"), context)
+        
+        return WeatherData(
+            location = location,
+            sources = weatherSources,
             timestamp = timestamp
         )
     }
