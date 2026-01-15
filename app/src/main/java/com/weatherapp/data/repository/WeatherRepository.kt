@@ -34,7 +34,7 @@ class WeatherRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val weatherData = response.body()!!
                 // Backend yanıt formatı doğrulaması
-                if (weatherData.sources == null || weatherData.location == null) {
+                if (!isValidWeatherData(weatherData)) {
                     emit(Resource.Error(
                         message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
                     ))
@@ -66,7 +66,7 @@ class WeatherRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val weatherData = response.body()!!
                 // Backend yanıt formatı doğrulaması
-                if (weatherData.sources == null || weatherData.location == null) {
+                if (!isValidWeatherData(weatherData)) {
                     emit(Resource.Error(
                         message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
                     ))
@@ -111,6 +111,15 @@ class WeatherRepository @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Error(message = e.localizedMessage ?: "Bilinmeyen bir hata oluştu"))
         }
+    }
+    
+    /**
+     * WeatherData yanıt yapısını doğrular
+     * @param weatherData Doğrulanacak WeatherData
+     * @return Veri geçerliyse true, değilse false
+     */
+    private fun isValidWeatherData(weatherData: WeatherData): Boolean {
+        return weatherData.sources != null && weatherData.location != null
     }
     
     /**
