@@ -58,8 +58,15 @@ class TimestampAdapter : TypeAdapter<Long>() {
      */
     private fun parseTimestampString(timestampString: String): Long {
         return try {
-            // ISO 8601 formatında parse et - formatter tüm formatları destekler
-            val dateTime = LocalDateTime.parse(timestampString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            // ISO 8601 formatında parse et
+            // Formatter otomatik olarak eksik kısımları (saniye, milisaniye) 0 olarak doldurur
+            val dateTime = if (timestampString.matches(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$"))) {
+                // Saniye olmadan: "2026-01-15T23:15" -> "2026-01-15T23:15:00" ekle
+                LocalDateTime.parse(timestampString + ":00", DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            } else {
+                // Saniye ile veya daha detaylı formatlar
+                LocalDateTime.parse(timestampString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            }
             
             // LocalDateTime'ı Unix timestamp'e çevir
             dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
