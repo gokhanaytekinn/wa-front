@@ -40,7 +40,7 @@ Edit `app/src/main/java/com/weatherapp/di/NetworkModule.kt`:
 private const val BASE_URL = "https://your-backend-api.com/api/v1/"
 ```
 
-Replace with your actual backend API URL.
+Replace with your actual backend API URL. The URL must include the `/api/v1/` path to match the wa-core API specification.
 
 ## Building the Project
 

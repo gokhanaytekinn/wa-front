@@ -25,8 +25,9 @@ object NetworkModule {
     /**
      * Base URL - Backend API adresi
      * wa-core sistemiyle iletişim için yapılandırılmıştır
+     * v1 API versiyonu kullanılır
      */
-    private const val BASE_URL = "http://localhost:8080/api/"
+    private const val BASE_URL = "http://localhost:8080/api/v1/"
     
     /**
      * Gson sağlayıcı
