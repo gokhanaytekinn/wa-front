@@ -41,6 +41,7 @@ private const val CARD_BACKGROUND_ALPHA = 0.5f
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForecastScreen(
+    isVisible: Boolean = true,
     viewModel: ForecastViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -85,6 +86,7 @@ fun ForecastScreen(
                         ForecastContent(
                             forecastData = forecastData!!,
                             temperatureUnit = uiState.temperatureUnit,
+                            isVisible = isVisible,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -115,6 +117,7 @@ fun ForecastScreen(
 fun ForecastContent(
     forecastData: com.weatherapp.data.model.ForecastResponse,
     temperatureUnit: String,
+    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     // Her kaynağın tahminlerini accordion olarak göster
@@ -123,8 +126,10 @@ fun ForecastContent(
     val listState = rememberLazyListState()
     
     // Ekran görünür olduğunda scroll'u en üste getir
-    LaunchedEffect(Unit) {
-        listState.scrollToItem(0)
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
     }
     
     LazyColumn(

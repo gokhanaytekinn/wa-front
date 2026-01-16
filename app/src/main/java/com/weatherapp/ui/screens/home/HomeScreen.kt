@@ -38,6 +38,7 @@ private const val CARD_BACKGROUND_ALPHA = 0.5f
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    isVisible: Boolean = true,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -96,6 +97,7 @@ fun HomeScreen(
                     WeatherContent(
                         weatherData = uiState.weatherData!!,
                         temperatureUnit = uiState.temperatureUnit,
+                        isVisible = isVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -203,13 +205,16 @@ fun SearchBar(
 fun WeatherContent(
     weatherData: com.weatherapp.data.model.WeatherData,
     temperatureUnit: String,
+    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     
     // Ekran görünür olduğunda scroll'u en üste getir
-    LaunchedEffect(Unit) {
-        listState.scrollToItem(0)
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
     }
     
     LazyColumn(

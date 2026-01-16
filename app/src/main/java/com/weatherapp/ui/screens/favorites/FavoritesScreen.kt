@@ -23,6 +23,7 @@ import com.weatherapp.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
+    isVisible: Boolean = true,
     onLocationClick: (String, String?) -> Unit,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
@@ -56,6 +57,7 @@ fun FavoritesScreen(
                         favorites = uiState.favoriteLocations,
                         onLocationClick = onLocationClick,
                         onRemoveFavorite = { viewModel.removeFavorite(it) },
+                        isVisible = isVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -72,13 +74,16 @@ fun FavoritesContent(
     favorites: List<String>,
     onLocationClick: (String, String?) -> Unit,
     onRemoveFavorite: (String) -> Unit,
+    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     
     // Ekran görünür olduğunda scroll'u en üste getir
-    LaunchedEffect(Unit) {
-        listState.scrollToItem(0)
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
     }
     
     LazyColumn(

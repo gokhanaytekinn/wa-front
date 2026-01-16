@@ -23,6 +23,7 @@ import com.weatherapp.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    isVisible: Boolean = true,
     onThemeChange: (String) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -30,8 +31,10 @@ fun SettingsScreen(
     val listState = rememberLazyListState()
     
     // Ekran görünür olduğunda scroll'u en üste getir
-    LaunchedEffect(Unit) {
-        listState.scrollToItem(0)
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
     }
     
     Scaffold(

@@ -86,10 +86,14 @@ fun NavigationGraph(
             modifier = Modifier.padding(innerPadding),
             userScrollEnabled = true // Kullanıcının kaydırmasına izin ver
         ) { page ->
+            // Her sayfa için görünürlük anahtarı - sayfa aktif olduğunda scroll'u sıfırla
+            val isCurrentPage = pagerState.currentPage == page
+            
             when (page) {
-                0 -> HomeScreen()
-                1 -> ForecastScreen()
+                0 -> HomeScreen(isVisible = isCurrentPage)
+                1 -> ForecastScreen(isVisible = isCurrentPage)
                 2 -> FavoritesScreen(
+                    isVisible = isCurrentPage,
                     onLocationClick = { city, district ->
                         // Konumu kaydet ve ana sayfaya git
                         scope.launch {
@@ -99,6 +103,7 @@ fun NavigationGraph(
                     }
                 )
                 3 -> SettingsScreen(
+                    isVisible = isCurrentPage,
                     onThemeChange = { newTheme ->
                         scope.launch {
                             themeState = newTheme
