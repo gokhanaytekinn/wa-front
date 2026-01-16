@@ -3,6 +3,7 @@ package com.weatherapp.ui.screens.favorites
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -73,7 +74,15 @@ fun FavoritesContent(
     onRemoveFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+    
+    // Ekran görünür olduğunda scroll'u en üste getir
+    LaunchedEffect(Unit) {
+        listState.scrollToItem(0)
+    }
+    
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

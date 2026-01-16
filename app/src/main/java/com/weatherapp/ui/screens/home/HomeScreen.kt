@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -204,7 +205,15 @@ fun WeatherContent(
     temperatureUnit: String,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+    
+    // Ekran görünür olduğunda scroll'u en üste getir
+    LaunchedEffect(Unit) {
+        listState.scrollToItem(0)
+    }
+    
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)

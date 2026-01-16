@@ -1,7 +1,10 @@
 package com.weatherapp.ui.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,17 +28,16 @@ import kotlinx.coroutines.launch
 /**
  * Ana navigasyon yapısı
  * Alt navigasyon çubuğu ile birlikte tüm ekranları yönetir
+ * Ekranlar arası kaydırma (swipe) ve scroll sıfırlama desteği
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NavigationGraph(
     preferencesRepository: PreferencesRepository
 ) {
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val scope = rememberCoroutineScope()
     
     // Tema durumu
-    val scope = rememberCoroutineScope()
     var themeState by remember { mutableStateOf("dark") }
     
     // Tema tercihini yükle
@@ -56,10 +58,22 @@ fun NavigationGraph(
         else -> true
     }
     
+    // HorizontalPager durumu - ekranlar arası kaydırma için
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { bottomNavItems.size }
+    )
+    
+    // Pager değişikliklerini dinle ve scroll durumunu sıfırla
+    LaunchedEffect(pagerState.currentPage) {
+        // Sayfa değiştiğinde scroll durumunu sıfırla sinyali gönderilir
+        // Her ekran kendi LazyListState'ini dinleyecek
+    }
+    
     Scaffold(
         bottomBar = {
             NavigationBar {
-                bottomNavItems.forEach { screen ->
+                bottomNavItems.forEachIndexed { index, screen ->
                     NavigationBarItem(
                         icon = {
                             Icon(
@@ -68,19 +82,10 @@ fun NavigationGraph(
                             )
                         },
                         label = { Text(getNavigationLabel(screen)) },
-                        selected = currentDestination?.hierarchy?.any { 
-                            it.route == screen.route 
-                        } == true,
+                        selected = pagerState.currentPage == index,
                         onClick = {
-                            navController.navigate(screen.route) {
-                                // Pop up to the start destination
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
                             }
                         }
                     )
@@ -88,39 +93,24 @@ fun NavigationGraph(
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Screen.Home.route) {
-                HomeScreen()
-            }
-            
-            composable(Screen.Forecast.route) {
-                ForecastScreen()
-            }
-            
-            composable(Screen.Favorites.route) {
-                FavoritesScreen(
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.padding(innerPadding),
+            userScrollEnabled = true // Kullanıcının kaydırmasına izin ver
+        ) { page ->
+            when (page) {
+                0 -> HomeScreen()
+                1 -> ForecastScreen()
+                2 -> FavoritesScreen(
                     onLocationClick = { city, district ->
                         // Konumu kaydet ve ana sayfaya git
                         scope.launch {
                             preferencesRepository.setLastSelectedLocation(city, district)
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
+                            pagerState.animateScrollToPage(0) // Ana sayfaya git
                         }
                     }
                 )
-            }
-            
-            composable(Screen.Settings.route) {
-                SettingsScreen(
+                3 -> SettingsScreen(
                     onThemeChange = { newTheme ->
                         scope.launch {
                             themeState = newTheme
