@@ -7,6 +7,7 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
@@ -14,6 +15,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * HomeViewModel için unit test sınıfı
@@ -111,8 +114,8 @@ class HomeViewModelTest {
     @Test
     fun `changing last selected location should load weather data for new location`() = runTest {
         // Given - Create a MutableStateFlow to simulate preference changes
-        val cityFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-        val districtFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        val cityFlow = MutableStateFlow<String?>(null)
+        val districtFlow = MutableStateFlow<String?>(null)
         
         whenever(preferencesRepository.lastSelectedCity).thenReturn(cityFlow)
         whenever(preferencesRepository.lastSelectedDistrict).thenReturn(districtFlow)
@@ -142,8 +145,8 @@ class HomeViewModelTest {
         verify(weatherRepository, times(1)).getCurrentWeather("Ankara", null)
         testViewModel.uiState.test {
             val state = awaitItem()
-            assert(state.selectedCity == "Ankara")
-            assert(state.selectedDistrict == null)
+            assertEquals("Ankara", state.selectedCity)
+            assertNull(state.selectedDistrict)
         }
     }
     
