@@ -25,16 +25,23 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = System.getenv("KEYSTORE")?.let { file(it) }
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            val keystorePath = System.getenv("KEYSTORE")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Only apply signing config if environment variables are set
+            val keystorePath = System.getenv("KEYSTORE")
+            if (keystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
