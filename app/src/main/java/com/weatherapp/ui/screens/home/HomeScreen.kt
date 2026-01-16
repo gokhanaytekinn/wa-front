@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,9 @@ import com.weatherapp.data.model.WeatherSource
 import com.weatherapp.ui.components.ErrorDialog
 import com.weatherapp.ui.components.WeatherSourceCard
 import com.weatherapp.ui.components.formatTemperature
+
+// Constants
+private const val CARD_BACKGROUND_ALPHA = 0.5f
 
 /**
  * Ana sayfa composable
@@ -483,7 +487,7 @@ private data class AverageWeatherData(
  */
 @Composable
 fun AverageDetailItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     value: String,
     modifier: Modifier = Modifier
@@ -491,7 +495,7 @@ fun AverageDetailItem(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CARD_BACKGROUND_ALPHA)
         )
     ) {
         Row(
