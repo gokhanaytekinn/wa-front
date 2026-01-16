@@ -142,13 +142,13 @@ fun WeatherDetailGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 WeatherDetailItem(
-                    icon = Icons.Default.ThermostatAuto,
+                    icon = Icons.Default.ArrowDownward,
                     label = stringResource(R.string.min_temp),
                     value = formatTemperature(forecast.day.minTemp, temperatureUnit),
                     modifier = Modifier.weight(1f)
                 )
                 WeatherDetailItem(
-                    icon = Icons.Default.ThermostatAuto,
+                    icon = Icons.Default.ArrowUpward,
                     label = stringResource(R.string.max_temp),
                     value = formatTemperature(forecast.day.maxTemp, temperatureUnit),
                     modifier = Modifier.weight(1f)
