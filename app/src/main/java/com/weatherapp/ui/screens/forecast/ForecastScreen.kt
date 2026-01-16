@@ -285,7 +285,7 @@ fun AverageDayForecastItem(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                     )
-                </Column>
+                }
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -302,7 +302,7 @@ fun AverageDayForecastItem(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                </Column>
+                }
             }
             
             // Metrikler
