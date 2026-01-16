@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.weatherapp.R
@@ -185,17 +184,21 @@ fun AverageForecastCard(
             }
             
             // Her gün için ortalama hesapla
-            forecastsByDate.map { (date, forecasts) ->
-                val count = forecasts.size.toDouble()
-                AverageDayForecast(
-                    date = date,
-                    avgMaxTemp = forecasts.sumOf { it.maxTemperature } / count,
-                    avgMinTemp = forecasts.sumOf { it.minTemperature } / count,
-                    avgHumidity = (forecasts.sumOf { it.humidity.toDouble() } / count).toInt(),
-                    avgWindSpeed = forecasts.sumOf { it.windSpeed } / count,
-                    avgPrecipitationChance = (forecasts.sumOf { it.precipitationChance.toDouble() } / count).toInt(),
-                    description = forecasts.groupBy { it.description }.maxBy { it.value.size }.key
-                )
+            forecastsByDate.mapNotNull { (date, forecasts) ->
+                if (forecasts.isEmpty()) {
+                    null
+                } else {
+                    val count = forecasts.size.toDouble()
+                    AverageDayForecast(
+                        date = date,
+                        avgMaxTemp = forecasts.sumOf { it.maxTemperature } / count,
+                        avgMinTemp = forecasts.sumOf { it.minTemperature } / count,
+                        avgHumidity = (forecasts.sumOf { it.humidity.toDouble() } / count).toInt(),
+                        avgWindSpeed = forecasts.sumOf { it.windSpeed } / count,
+                        avgPrecipitationChance = (forecasts.sumOf { it.precipitationChance.toDouble() } / count).toInt(),
+                        description = forecasts.groupBy { it.description }.maxBy { it.value.size }.key
+                    )
+                }
             }.sortedBy { it.date }
         }
     }
