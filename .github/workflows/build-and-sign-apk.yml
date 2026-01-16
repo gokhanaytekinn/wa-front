@@ -3,31 +3,33 @@ name: Build and Sign APK
 on:
   push:
     branches:
-      - main
+      - main  # Sadece main branch'e push olunduğunda çalıştırılır.
   pull_request:
     branches:
-      - main
+      - main  # pull request oluştursa bile main'de çalıştırılır.
 
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - name: Checkout Code
+      # Kaynak kodu klonla
+      - name: Checkout code
         uses: actions/checkout@v3
 
+      # Java JDK Kurulumu
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
+      # Key Store’un Base64'ten Çözümlenmesi
       - name: Decode Key Store
         run: echo "${{ secrets.KEYSTORE }}" | base64 -d > app/keystore.jks
 
+      # Gradle Cache’e alınması dolayısıyla workflow hızlandıracak
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -36,6 +38,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # APK'yı Derli ve Release Modunda İmza
       - name: Build and Sign APK
         run: |
           ./gradlew clean assembleRelease \
@@ -44,12 +47,9 @@ jobs:
           -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
           -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
-      - name: Cleanup Keystore
-        if: always()
-        run: rm -f app/keystore.jks
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
+      # Çıkarılan APK'yı GitHub Artifacts'e Yükle
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
         with:
-          name: signed-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: signed-release-apk  # Artifacts'in adı
+          path: app/build/outputs/apk/release/*.apk  # APK Dosya Yolu
