@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -37,6 +38,7 @@ private const val CARD_BACKGROUND_ALPHA = 0.5f
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    isVisible: Boolean = true,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -95,6 +97,7 @@ fun HomeScreen(
                     WeatherContent(
                         weatherData = uiState.weatherData!!,
                         temperatureUnit = uiState.temperatureUnit,
+                        isVisible = isVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -202,9 +205,20 @@ fun SearchBar(
 fun WeatherContent(
     weatherData: com.weatherapp.data.model.WeatherData,
     temperatureUnit: String,
+    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+    
+    // Ekran görünür olduğunda scroll'u en üste getir
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
+    }
+    
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)

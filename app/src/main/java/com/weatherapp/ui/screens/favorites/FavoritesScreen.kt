@@ -3,6 +3,7 @@ package com.weatherapp.ui.screens.favorites
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,6 +23,7 @@ import com.weatherapp.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
+    isVisible: Boolean = true,
     onLocationClick: (String, String?) -> Unit,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
@@ -55,6 +57,7 @@ fun FavoritesScreen(
                         favorites = uiState.favoriteLocations,
                         onLocationClick = onLocationClick,
                         onRemoveFavorite = { viewModel.removeFavorite(it) },
+                        isVisible = isVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -71,9 +74,20 @@ fun FavoritesContent(
     favorites: List<String>,
     onLocationClick: (String, String?) -> Unit,
     onRemoveFavorite: (String) -> Unit,
+    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+    
+    // Ekran görünür olduğunda scroll'u en üste getir
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            listState.scrollToItem(0)
+        }
+    }
+    
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
