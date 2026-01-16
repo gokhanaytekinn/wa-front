@@ -108,6 +108,45 @@ class HomeViewModelTest {
         }
     }
     
+    @Test
+    fun `changing last selected location should load weather data for new location`() = runTest {
+        // Given - Create a MutableStateFlow to simulate preference changes
+        val cityFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        val districtFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        
+        whenever(preferencesRepository.lastSelectedCity).thenReturn(cityFlow)
+        whenever(preferencesRepository.lastSelectedDistrict).thenReturn(districtFlow)
+        whenever(preferencesRepository.temperatureUnit).thenReturn(flowOf("celsius"))
+        whenever(preferencesRepository.favoriteLocations).thenReturn(flowOf(emptySet()))
+        
+        val mockWeatherData = createMockWeatherData()
+        val flow = flow {
+            emit(Resource.Loading())
+            emit(Resource.Success(mockWeatherData))
+        }
+        whenever(weatherRepository.getCurrentWeather(any(), any())).thenReturn(flow)
+        
+        // When - Create view model (will observe preferences)
+        val testViewModel = HomeViewModel(weatherRepository, preferencesRepository)
+        advanceUntilIdle()
+        
+        // Then - Verify no call yet (location is null)
+        verify(weatherRepository, never()).getCurrentWeather(any(), any())
+        
+        // When - Simulate favorites screen setting a new location
+        cityFlow.value = "Ankara"
+        districtFlow.value = null
+        advanceUntilIdle()
+        
+        // Then - Verify weather data was loaded for new location
+        verify(weatherRepository, times(1)).getCurrentWeather("Ankara", null)
+        testViewModel.uiState.test {
+            val state = awaitItem()
+            assert(state.selectedCity == "Ankara")
+            assert(state.selectedDistrict == null)
+        }
+    }
+    
     private fun createMockWeatherData(): WeatherData {
         return WeatherData(
             location = Location(

@@ -61,22 +61,27 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            // Use first() to only get the initial value, not continuously observe
-            // This prevents infinite loop when loadWeatherData saves to preferences
-            val (city, district) = preferencesRepository.lastSelectedCity.combine(
+            // Continuously observe changes to last selected location
+            // This allows favorites to work properly when navigating from favorites screen
+            preferencesRepository.lastSelectedCity.combine(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }.first()
-            
-            // Update UI state
-            _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
-            
-            // Load weather data if we have a city
-            if (city != null) {
-                loadWeatherData(city, district)
-                // Update search query to show selected location
-                updateSearchQueryForLocation(city, district)
+            }.collect { (city, district) ->
+                // Only load weather data if the location has actually changed
+                val currentCity = _uiState.value.selectedCity
+                val currentDistrict = _uiState.value.selectedDistrict
+                val locationChanged = city != currentCity || district != currentDistrict
+                
+                // Update UI state
+                _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
+                
+                // Load weather data if we have a city and location changed
+                if (city != null && locationChanged) {
+                    loadWeatherData(city, district)
+                    // Update search query to show selected location
+                    updateSearchQueryForLocation(city, district)
+                }
             }
         }
     }
