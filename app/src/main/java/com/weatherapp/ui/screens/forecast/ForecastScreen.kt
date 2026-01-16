@@ -250,7 +250,7 @@ fun AverageForecastCard(
  * Ortalama günlük tahmin öğesi
  */
 @Composable
-fun AverageDayForecastItem(
+private fun AverageDayForecastItem(
     forecast: AverageDayForecast,
     temperatureUnit: String,
     modifier: Modifier = Modifier
