@@ -57,23 +57,22 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            // Use combine to get both city and district together
-            preferencesRepository.lastSelectedCity.combine(
+            // Use first() to only get the initial value, not continuously observe
+            // This prevents infinite loop when loadWeatherData saves to preferences
+            val (city, district) = preferencesRepository.lastSelectedCity.combine(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }
-            .distinctUntilChanged() // Only emit when values actually change
-            .collect { (city, district) ->
-                // Update UI state
-                _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
-                
-                // Load weather data if we have a city
-                if (city != null) {
-                    loadWeatherData(city, district)
-                    // Update search query to show selected location
-                    updateSearchQueryForLocation(city, district)
-                }
+            }.first()
+            
+            // Update UI state
+            _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
+            
+            // Load weather data if we have a city
+            if (city != null) {
+                loadWeatherData(city, district)
+                // Update search query to show selected location
+                updateSearchQueryForLocation(city, district)
             }
         }
     }

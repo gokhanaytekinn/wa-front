@@ -53,20 +53,19 @@ class ForecastViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            // Use combine to get both city and district together
-            preferencesRepository.lastSelectedCity.combine(
+            // Use first() to only get the initial value, not continuously observe
+            // This prevents any potential issues with repeated calls
+            val (city, district) = preferencesRepository.lastSelectedCity.combine(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }
-            .distinctUntilChanged() // Only emit when values actually change
-            .collect { (city, district) ->
-                // Load forecast data if we have a city
-                if (city != null) {
-                    loadForecastData(city, district)
-                    // Update search query to show selected location
-                    updateSearchQueryForLocation(city, district)
-                }
+            }.first()
+            
+            // Load forecast data if we have a city
+            if (city != null) {
+                loadForecastData(city, district)
+                // Update search query to show selected location
+                updateSearchQueryForLocation(city, district)
             }
         }
     }
