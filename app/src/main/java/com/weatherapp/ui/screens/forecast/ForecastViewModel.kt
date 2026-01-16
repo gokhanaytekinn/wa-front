@@ -9,12 +9,14 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -37,6 +39,9 @@ class ForecastViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     
+    // Job to track and cancel ongoing forecast data loading
+    private var loadForecastJob: Job? = null
+    
     init {
         // Son seçilen konumu yükle
         loadLastSelectedLocation()
@@ -53,33 +58,38 @@ class ForecastViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            // Use combine to get both city and district together
-            preferencesRepository.lastSelectedCity.combine(
+            // Use first() to only get the initial value, not continuously observe
+            // This prevents any potential issues with repeated calls
+            val (city, district) = preferencesRepository.lastSelectedCity.combine(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }
-            .distinctUntilChanged() // Only emit when values actually change
-            .collect { (city, district) ->
-                // Load forecast data if we have a city
-                if (city != null) {
-                    loadForecastData(city, district)
-                    // Update search query to show selected location
-                    updateSearchQueryForLocation(city, district)
-                }
+            }.first()
+            
+            // Load forecast data if we have a city
+            if (city != null) {
+                loadForecastData(city, district)
+                // Update search query to show selected location
+                updateSearchQueryForLocation(city, district)
             }
         }
     }
     
     /**
      * Konum için arama sorgusunu günceller
+     * Güncellenen sorgu, setupSearchQueryListener'da selectedCity ile kontrol edilerek
+     * gereksiz arama yapılması engellenir
      */
     private fun updateSearchQueryForLocation(city: String, district: String?) {
-        _searchQuery.value = if (district != null) {
+        val newQuery = if (district != null) {
             "$district, $city"
         } else {
             city
         }
+        // Update query - search listener will skip this since it matches selected location
+        _searchQuery.value = newQuery
+        // Clear search results when location is selected
+        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
     }
     
     /**
@@ -102,9 +112,14 @@ class ForecastViewModel @Inject constructor(
             .debounce(500)
             .distinctUntilChanged()
             .onEach { query ->
-                if (query.isNotBlank()) {
+                // Mevcut seçili konumun query'si ile aynıysa arama yapma
+                val currentLocationQuery = _uiState.value.selectedCity?.let { city ->
+                    _uiState.value.selectedDistrict?.let { "$it, $city" } ?: city
+                }
+                
+                if (query.isNotBlank() && query != currentLocationQuery) {
                     searchLocations(query)
-                } else {
+                } else if (query.isBlank()) {
                     _uiState.update { it.copy(searchResults = emptyList()) }
                 }
             }
@@ -153,17 +168,28 @@ class ForecastViewModel @Inject constructor(
      * Konum seçer
      */
     fun selectLocation(location: LocationSearchResult) {
-        loadForecastData(location.city, location.district)
-        // Seçilen konumu arama kutusunda göster
+        // Update selected location in UI state first to prevent race condition
+        _uiState.update { 
+            it.copy(
+                selectedCity = location.city, 
+                selectedDistrict = location.district,
+                searchResults = emptyList()
+            ) 
+        }
+        // Update search query to show selected location
         _searchQuery.value = location.getDisplayName()
-        _uiState.update { it.copy(searchResults = emptyList()) }
+        // Load forecast data for the selected location
+        loadForecastData(location.city, location.district)
     }
     
     /**
      * Tahmin verilerini yükler
      */
     fun loadForecastData(city: String, district: String? = null) {
-        viewModelScope.launch {
+        // Cancel any ongoing forecast data loading to prevent multiple simultaneous requests
+        loadForecastJob?.cancel()
+        
+        loadForecastJob = viewModelScope.launch {
             weatherRepository.getForecast(city, district).collect { resource ->
                 when (resource) {
                     is Resource.Loading -> {
@@ -177,9 +203,11 @@ class ForecastViewModel @Inject constructor(
                     is Resource.Success -> {
                         _uiState.update { 
                             it.copy(
-                                weatherData = resource.data,
+                                forecastData = resource.data,
                                 isLoading = false,
-                                error = null
+                                error = null,
+                                selectedCity = city,
+                                selectedDistrict = district
                             )
                         }
                     }
@@ -209,11 +237,13 @@ class ForecastViewModel @Inject constructor(
  * Tahmin ekranı UI durumu
  */
 data class ForecastUiState(
-    val weatherData: WeatherData? = null,
+    val forecastData: com.weatherapp.data.model.ForecastResponse? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val errorResponse: com.weatherapp.data.model.ApiErrorResponse? = null,
     val temperatureUnit: String = "celsius",
     val searchResults: List<LocationSearchResult> = emptyList(),
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    val selectedCity: String? = null,
+    val selectedDistrict: String? = null
 )

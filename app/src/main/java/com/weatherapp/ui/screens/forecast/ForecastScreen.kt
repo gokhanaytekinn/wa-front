@@ -49,8 +49,8 @@ fun ForecastScreen(
             )
         }
     ) { paddingValues ->
-        val weatherData = uiState.weatherData
-        val hasValidData = weatherData != null && !weatherData.sources.isNullOrEmpty()
+        val forecastData = uiState.forecastData
+        val hasValidData = forecastData != null && (!forecastData.forecasts.isNullOrEmpty() || !forecastData.sources.isNullOrEmpty())
         
         Column(
             modifier = Modifier
@@ -79,7 +79,7 @@ fun ForecastScreen(
                     }
                     hasValidData -> {
                         ForecastContent(
-                            weatherData = weatherData!!,
+                            forecastData = forecastData!!,
                             temperatureUnit = uiState.temperatureUnit,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -109,12 +109,12 @@ fun ForecastScreen(
  */
 @Composable
 fun ForecastContent(
-    weatherData: com.weatherapp.data.model.WeatherData,
+    forecastData: com.weatherapp.data.model.ForecastResponse,
     temperatureUnit: String,
     modifier: Modifier = Modifier
 ) {
-    // İlk kaynağın tahmin verilerini kullan
-    val forecasts = weatherData.sources?.firstOrNull()?.forecast ?: emptyList()
+    // Her kaynağın tahminlerini accordion olarak göster
+    val sources = forecastData.sources ?: emptyList()
     
     LazyColumn(
         modifier = modifier,
@@ -122,27 +122,205 @@ fun ForecastContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Konum bilgisi
-        weatherData.location?.let { location ->
-            item {
-                Text(
-                    text = buildString {
-                        append(location.city)
-                        location.district?.let { append(", $it") }
-                    },
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
+        item {
+            Text(
+                text = buildString {
+                    append(forecastData.city)
+                    forecastData.district?.let { append(", $it") }
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
         
-        // Her gün için kart
-        items(forecasts) { forecastDay ->
-            DayForecastCard(
-                forecastDay = forecastDay,
+        // Her kaynak için accordion kart
+        items(sources) { source ->
+            ForecastSourceCard(
+                source = source,
                 temperatureUnit = temperatureUnit,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+/**
+ * Tahmin kaynağı kartı - Accordion tarzında genişletilebilir
+ * Her hava durumu servisinin 5 günlük tahminlerini gösterir
+ */
+@Composable
+fun ForecastSourceCard(
+    source: com.weatherapp.data.model.ForecastSource,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = modifier.clickable { isExpanded = !isExpanded },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Başlık satırı
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = source.source,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${source.forecasts.size} ${stringResource(R.string.daily_forecast)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+                
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Daralt" else "Genişlet",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            // Genişletilmiş detaylar - 5 günlük tahminler
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    source.forecasts.forEach { forecast ->
+                        SimpleForecastCard(
+                            forecast = forecast,
+                            temperatureUnit = temperatureUnit,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Basit günlük tahmin kartı
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SimpleForecastCard(
+    forecast: com.weatherapp.data.model.SimpleForecast,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Gün ve açıklama
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = formatDate(forecast.date),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = forecast.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "${stringResource(R.string.high)}: ${formatTemperature(forecast.maxTemperature, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "${stringResource(R.string.low)}: ${formatTemperature(forecast.minTemperature, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            
+            // Rüzgar hızı ve yağış olasılığı
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Air,
+                        contentDescription = stringResource(R.string.wind_speed),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${stringResource(R.string.wind_speed)}: ${forecast.windSpeed} ${stringResource(R.string.wind_speed_unit_metric)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cloud,
+                        contentDescription = stringResource(R.string.precipitation),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${stringResource(R.string.precipitation)}: ${forecast.precipitationChance}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
     }
 }
@@ -212,7 +390,8 @@ fun DayForecastCard(
             }
             
             // Saatlik tahminler (varsa)
-            if (isExpanded && !forecastDay.hourly.isNullOrEmpty()) {
+            val hourlyForecasts = forecastDay.hourly
+            if (isExpanded && !hourlyForecasts.isNullOrEmpty()) {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 
                 Text(
@@ -225,7 +404,7 @@ fun DayForecastCard(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(forecastDay.hourly) { hourly ->
+                    items(hourlyForecasts) { hourly ->
                         HourlyForecastItem(
                             hourly = hourly,
                             temperatureUnit = temperatureUnit
@@ -283,14 +462,22 @@ fun HourlyForecastItem(
 }
 
 /**
- * Tarihi formatlar
+ * Tarihi formatlar - Multilanguage desteği ile
  */
 fun formatDate(dateString: String): String {
     return try {
         val date = LocalDate.parse(dateString)
-        val dayOfWeek = date.dayOfWeek.toString()
-        val formatter = DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault())
-        "${dayOfWeek.substring(0, 3)} ${date.format(formatter)}"
+        val locale = Locale.getDefault()
+        
+        // Gün adını yerel dile göre formatla (Pazartesi, Monday, etc.)
+        val dayFormatter = DateTimeFormatter.ofPattern("EEE", locale)
+        val dayOfWeek = date.format(dayFormatter)
+        
+        // Tarih formatı (15 Oca, Jan 15, etc.)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd MMM", locale)
+        val formattedDate = date.format(dateFormatter)
+        
+        "$dayOfWeek $formattedDate"
     } catch (e: Exception) {
         dateString
     }

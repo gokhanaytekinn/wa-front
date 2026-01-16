@@ -27,6 +27,8 @@
     <string name="daily_forecast">Daily Forecast</string>
     <string name="high">High</string>
     <string name="low">Low</string>
+    <string name="min_temp">Min</string>
+    <string name="max_temp">Max</string>
     
     <!-- Favorites Screen -->
     <string name="favorite_locations">Favorite Locations</string>

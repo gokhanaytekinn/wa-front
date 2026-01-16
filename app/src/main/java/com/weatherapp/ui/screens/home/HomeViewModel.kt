@@ -9,6 +9,7 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,9 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     
+    // Job to track and cancel ongoing weather data loading
+    private var loadWeatherJob: Job? = null
+    
     init {
         // Son seçilen konumu yükle
         loadLastSelectedLocation()
@@ -57,36 +61,41 @@ class HomeViewModel @Inject constructor(
      */
     private fun loadLastSelectedLocation() {
         viewModelScope.launch {
-            // Use combine to get both city and district together
-            preferencesRepository.lastSelectedCity.combine(
+            // Use first() to only get the initial value, not continuously observe
+            // This prevents infinite loop when loadWeatherData saves to preferences
+            val (city, district) = preferencesRepository.lastSelectedCity.combine(
                 preferencesRepository.lastSelectedDistrict
             ) { city, district ->
                 Pair(city, district)
-            }
-            .distinctUntilChanged() // Only emit when values actually change
-            .collect { (city, district) ->
-                // Update UI state
-                _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
-                
-                // Load weather data if we have a city
-                if (city != null) {
-                    loadWeatherData(city, district)
-                    // Update search query to show selected location
-                    updateSearchQueryForLocation(city, district)
-                }
+            }.first()
+            
+            // Update UI state
+            _uiState.update { it.copy(selectedCity = city, selectedDistrict = district) }
+            
+            // Load weather data if we have a city
+            if (city != null) {
+                loadWeatherData(city, district)
+                // Update search query to show selected location
+                updateSearchQueryForLocation(city, district)
             }
         }
     }
     
     /**
      * Konum için arama sorgusunu günceller
+     * Güncellenen sorgu, setupSearchQueryListener'da selectedCity ile kontrol edilerek
+     * gereksiz arama yapılması engellenir
      */
     private fun updateSearchQueryForLocation(city: String, district: String?) {
-        _searchQuery.value = if (district != null) {
+        val newQuery = if (district != null) {
             "$district, $city"
         } else {
             city
         }
+        // Update query - search listener will skip this since it matches selected location
+        _searchQuery.value = newQuery
+        // Clear search results when location is selected
+        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
     }
     
     /**
@@ -98,9 +107,14 @@ class HomeViewModel @Inject constructor(
             .debounce(500) // 500ms bekle
             .distinctUntilChanged()
             .onEach { query ->
-                if (query.isNotBlank()) {
+                // Mevcut seçili konumun query'si ile aynıysa arama yapma
+                val currentLocationQuery = _uiState.value.selectedCity?.let { city ->
+                    _uiState.value.selectedDistrict?.let { "$it, $city" } ?: city
+                }
+                
+                if (query.isNotBlank() && query != currentLocationQuery) {
                     searchLocations(query)
-                } else {
+                } else if (query.isBlank()) {
                     _uiState.update { it.copy(searchResults = emptyList()) }
                 }
             }
@@ -143,7 +157,10 @@ class HomeViewModel @Inject constructor(
      * Hava durumu verilerini yükler
      */
     fun loadWeatherData(city: String, district: String? = null) {
-        viewModelScope.launch {
+        // Cancel any ongoing weather data loading to prevent multiple simultaneous requests
+        loadWeatherJob?.cancel()
+        
+        loadWeatherJob = viewModelScope.launch {
             weatherRepository.getCurrentWeather(city, district).collect { resource ->
                 when (resource) {
                     is Resource.Loading -> {
@@ -223,10 +240,18 @@ class HomeViewModel @Inject constructor(
      * Konum seçer
      */
     fun selectLocation(location: LocationSearchResult) {
-        loadWeatherData(location.city, location.district)
-        // Seçilen konumu arama kutusunda göster
+        // Update selected location in UI state first to prevent race condition
+        _uiState.update { 
+            it.copy(
+                selectedCity = location.city, 
+                selectedDistrict = location.district,
+                searchResults = emptyList()
+            ) 
+        }
+        // Update search query to show selected location
         _searchQuery.value = location.getDisplayName()
-        _uiState.update { it.copy(searchResults = emptyList()) }
+        // Load weather data for the selected location
+        loadWeatherData(location.city, location.district)
     }
     
     /**
