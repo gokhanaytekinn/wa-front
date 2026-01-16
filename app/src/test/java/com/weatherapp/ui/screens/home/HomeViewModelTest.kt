@@ -7,6 +7,7 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
@@ -14,6 +15,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * HomeViewModel için unit test sınıfı
@@ -105,6 +108,45 @@ class HomeViewModelTest {
         viewModel.searchQuery.test {
             val searchQuery = awaitItem()
             assert(searchQuery == query)
+        }
+    }
+    
+    @Test
+    fun `changing last selected location should load weather data for new location`() = runTest {
+        // Given - Create a MutableStateFlow to simulate preference changes
+        val cityFlow = MutableStateFlow<String?>(null)
+        val districtFlow = MutableStateFlow<String?>(null)
+        
+        whenever(preferencesRepository.lastSelectedCity).thenReturn(cityFlow)
+        whenever(preferencesRepository.lastSelectedDistrict).thenReturn(districtFlow)
+        whenever(preferencesRepository.temperatureUnit).thenReturn(flowOf("celsius"))
+        whenever(preferencesRepository.favoriteLocations).thenReturn(flowOf(emptySet()))
+        
+        val mockWeatherData = createMockWeatherData()
+        val flow = flow {
+            emit(Resource.Loading())
+            emit(Resource.Success(mockWeatherData))
+        }
+        whenever(weatherRepository.getCurrentWeather(any(), any())).thenReturn(flow)
+        
+        // When - Create view model (will observe preferences)
+        val testViewModel = HomeViewModel(weatherRepository, preferencesRepository)
+        advanceUntilIdle()
+        
+        // Then - Verify no call yet (location is null)
+        verify(weatherRepository, never()).getCurrentWeather(any(), any())
+        
+        // When - Simulate favorites screen setting a new location
+        cityFlow.value = "Ankara"
+        districtFlow.value = null
+        advanceUntilIdle()
+        
+        // Then - Verify weather data was loaded for new location
+        verify(weatherRepository, times(1)).getCurrentWeather("Ankara", null)
+        testViewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("Ankara", state.selectedCity)
+            assertNull(state.selectedDistrict)
         }
     }
     
