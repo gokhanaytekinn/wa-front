@@ -354,12 +354,35 @@ fun AverageWeatherCard(
     temperatureUnit: String,
     modifier: Modifier = Modifier
 ) {
-    // Ortalamaları hesapla
-    val avgTemperature = sources.map { it.current.temperature }.average()
-    val avgFeelsLike = sources.map { it.current.feelsLike }.average()
-    val avgHumidity = sources.map { it.current.humidity }.average().toInt()
-    val avgWindSpeed = sources.map { it.current.windSpeed }.average()
-    val avgPrecipitation = sources.map { it.current.precipitation }.average()
+    // Ortalamaları tek bir iterasyonda hesapla
+    val averages = remember(sources) {
+        if (sources.isEmpty()) {
+            AverageWeatherData(0.0, 0.0, 0, 0.0, 0.0)
+        } else {
+            val count = sources.size.toDouble()
+            var sumTemp = 0.0
+            var sumFeels = 0.0
+            var sumHumidity = 0
+            var sumWind = 0.0
+            var sumPrecip = 0.0
+            
+            sources.forEach { source ->
+                sumTemp += source.current.temperature
+                sumFeels += source.current.feelsLike
+                sumHumidity += source.current.humidity
+                sumWind += source.current.windSpeed
+                sumPrecip += source.current.precipitation
+            }
+            
+            AverageWeatherData(
+                temperature = sumTemp / count,
+                feelsLike = sumFeels / count,
+                humidity = (sumHumidity / count).toInt(),
+                windSpeed = sumWind / count,
+                precipitation = sumPrecip / count
+            )
+        }
+    }
     
     Card(
         modifier = modifier,
@@ -393,7 +416,7 @@ fun AverageWeatherCard(
                     )
                 }
                 Text(
-                    text = formatTemperature(avgTemperature, temperatureUnit),
+                    text = formatTemperature(averages.temperature, temperatureUnit),
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -410,13 +433,13 @@ fun AverageWeatherCard(
                 AverageDetailItem(
                     icon = Icons.Default.Thermostat,
                     label = stringResource(R.string.feels_like),
-                    value = formatTemperature(avgFeelsLike, temperatureUnit),
+                    value = formatTemperature(averages.feelsLike, temperatureUnit),
                     modifier = Modifier.weight(1f)
                 )
                 AverageDetailItem(
                     icon = Icons.Default.Water,
                     label = stringResource(R.string.humidity),
-                    value = "$avgHumidity%",
+                    value = "${averages.humidity}%",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -430,19 +453,30 @@ fun AverageWeatherCard(
                 AverageDetailItem(
                     icon = Icons.Default.Air,
                     label = stringResource(R.string.wind_speed),
-                    value = "${"%.1f".format(avgWindSpeed)} ${stringResource(R.string.wind_speed_unit_metric)}",
+                    value = String.format("%.1f %s", averages.windSpeed, stringResource(R.string.wind_speed_unit_metric)),
                     modifier = Modifier.weight(1f)
                 )
                 AverageDetailItem(
                     icon = Icons.Default.Cloud,
                     label = stringResource(R.string.precipitation),
-                    value = "${"%.1f".format(avgPrecipitation)} ${stringResource(R.string.precipitation_unit)}",
+                    value = String.format("%.1f %s", averages.precipitation, stringResource(R.string.precipitation_unit)),
                     modifier = Modifier.weight(1f)
                 )
             }
         }
     }
 }
+
+/**
+ * Ortalama hava durumu verisi için data class
+ */
+private data class AverageWeatherData(
+    val temperature: Double,
+    val feelsLike: Double,
+    val humidity: Int,
+    val windSpeed: Double,
+    val precipitation: Double
+)
 
 /**
  * Ortalama hava durumu detay öğesi
