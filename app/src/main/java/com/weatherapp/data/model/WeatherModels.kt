@@ -191,3 +191,73 @@ data class ApiErrorResponse(
     @SerializedName("path")
     val path: String? = null
 )
+
+/**
+ * Hava durumu tahmini için veri modeli
+ * Forecast API'den gelen tahmin bilgisini temsil eder
+ */
+data class ForecastResponse(
+    @SerializedName("city")
+    val city: String,
+    
+    @SerializedName("district")
+    val district: String? = null,
+    
+    @SerializedName("temperatureUnit")
+    val temperatureUnit: String? = null,
+    
+    @SerializedName("forecasts")
+    val forecasts: List<SimpleForecast>? = null,
+    
+    @SerializedName("source")
+    val source: String? = null,
+    
+    @SerializedName("sources")
+    val sources: List<ForecastSource>? = null
+)
+
+/**
+ * Basit tahmin verisi
+ */
+data class SimpleForecast(
+    @SerializedName("date")
+    val date: String,
+    
+    @SerializedName("maxTemperature")
+    val maxTemperature: Double,
+    
+    @SerializedName("minTemperature")
+    val minTemperature: Double,
+    
+    @SerializedName("avgTemperature")
+    val avgTemperature: Double,
+    
+    @SerializedName("humidity")
+    val humidity: Int,
+    
+    @SerializedName("windSpeed")
+    val windSpeed: Double,
+    
+    @SerializedName("precipitationChance")
+    val precipitationChance: Int,
+    
+    @SerializedName("precipitation")
+    val precipitation: Double,
+    
+    @SerializedName("description")
+    val description: String,
+    
+    @SerializedName("weatherCode")
+    val weatherCode: String? = null
+)
+
+/**
+ * Tahmin kaynağı (farklı hava durumu servislerinden gelen tahmin)
+ */
+data class ForecastSource(
+    @SerializedName("source")
+    val source: String,
+    
+    @SerializedName("forecasts")
+    val forecasts: List<SimpleForecast>
+)

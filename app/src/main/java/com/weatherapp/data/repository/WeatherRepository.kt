@@ -57,22 +57,15 @@ class WeatherRepository @Inject constructor(
      * 5 günlük hava durumu tahminini getirir
      * @param city Şehir adı
      * @param district İlçe adı (opsiyonel)
-     * @return Flow ile sarılmış Resource<WeatherData>
+     * @return Flow ile sarılmış Resource<ForecastResponse>
      */
-    fun getForecast(city: String, district: String? = null): Flow<Resource<WeatherData>> = flow {
+    fun getForecast(city: String, district: String? = null): Flow<Resource<com.weatherapp.data.model.ForecastResponse>> = flow {
         emit(Resource.Loading())
         try {
             val response = apiService.getForecast(city, district, days = 5)
             if (response.isSuccessful && response.body() != null) {
-                val weatherData = response.body()!!
-                // Backend yanıt formatı doğrulaması
-                if (!isValidWeatherData(weatherData)) {
-                    emit(Resource.Error(
-                        message = "Backend API formatı hatalı. Beklenen veri yapısı ile uyuşmuyor."
-                    ))
-                } else {
-                    emit(Resource.Success(weatherData))
-                }
+                val forecastData = response.body()!!
+                emit(Resource.Success(forecastData))
             } else {
                 val errorResponse = parseErrorResponse(response.errorBody()?.string())
                 emit(Resource.Error(

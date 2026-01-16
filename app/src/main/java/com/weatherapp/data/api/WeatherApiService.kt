@@ -28,14 +28,14 @@ interface WeatherApiService {
      * Belirtilen konum için 5 günlük hava durumu tahminini getirir
      * @param city Şehir adı
      * @param district İlçe adı (opsiyonel)
-     * @return Tahmin verileri içeren hava durumu verisi
+     * @return Tahmin verileri
      */
     @GET("weather/forecast")
     suspend fun getForecast(
         @Query("city") city: String,
         @Query("district") district: String? = null,
         @Query("days") days: Int = 5
-    ): Response<WeatherData>
+    ): Response<com.weatherapp.data.model.ForecastResponse>
     
     /**
      * Konum arama - şehir ve ilçe otomatik tamamlama

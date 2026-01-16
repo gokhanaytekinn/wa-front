@@ -203,7 +203,7 @@ class ForecastViewModel @Inject constructor(
                     is Resource.Success -> {
                         _uiState.update { 
                             it.copy(
-                                weatherData = resource.data,
+                                forecastData = resource.data,
                                 isLoading = false,
                                 error = null,
                                 selectedCity = city,
@@ -237,7 +237,7 @@ class ForecastViewModel @Inject constructor(
  * Tahmin ekranı UI durumu
  */
 data class ForecastUiState(
-    val weatherData: WeatherData? = null,
+    val forecastData: com.weatherapp.data.model.ForecastResponse? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val errorResponse: com.weatherapp.data.model.ApiErrorResponse? = null,

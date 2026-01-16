@@ -49,8 +49,8 @@ fun ForecastScreen(
             )
         }
     ) { paddingValues ->
-        val weatherData = uiState.weatherData
-        val hasValidData = weatherData != null && !weatherData.sources.isNullOrEmpty()
+        val forecastData = uiState.forecastData
+        val hasValidData = forecastData != null && (!forecastData.forecasts.isNullOrEmpty() || !forecastData.sources.isNullOrEmpty())
         
         Column(
             modifier = Modifier
@@ -79,7 +79,7 @@ fun ForecastScreen(
                     }
                     hasValidData -> {
                         ForecastContent(
-                            weatherData = weatherData!!,
+                            forecastData = forecastData!!,
                             temperatureUnit = uiState.temperatureUnit,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -109,12 +109,14 @@ fun ForecastScreen(
  */
 @Composable
 fun ForecastContent(
-    weatherData: com.weatherapp.data.model.WeatherData,
+    forecastData: com.weatherapp.data.model.ForecastResponse,
     temperatureUnit: String,
     modifier: Modifier = Modifier
 ) {
-    // İlk kaynağın tahmin verilerini kullan
-    val forecasts = weatherData.sources?.firstOrNull()?.forecast ?: emptyList()
+    // Öncelikle sources'dan ilk kaynağı, yoksa direkt forecasts'ı kullan
+    val forecasts = forecastData.sources?.firstOrNull()?.forecasts 
+        ?: forecastData.forecasts 
+        ?: emptyList()
     
     LazyColumn(
         modifier = modifier,
@@ -122,27 +124,89 @@ fun ForecastContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Konum bilgisi
-        weatherData.location?.let { location ->
-            item {
-                Text(
-                    text = buildString {
-                        append(location.city)
-                        location.district?.let { append(", $it") }
-                    },
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
+        item {
+            Text(
+                text = buildString {
+                    append(forecastData.city)
+                    forecastData.district?.let { append(", $it") }
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
         
         // Her gün için kart
-        items(forecasts) { forecastDay ->
-            DayForecastCard(
-                forecastDay = forecastDay,
+        items(forecasts) { forecast ->
+            SimpleForecastCard(
+                forecast = forecast,
                 temperatureUnit = temperatureUnit,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+/**
+ * Basit günlük tahmin kartı
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SimpleForecastCard(
+    forecast: com.weatherapp.data.model.SimpleForecast,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Gün özeti
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = formatDate(forecast.date),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = forecast.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "${stringResource(R.string.high)}: ${formatTemperature(forecast.maxTemperature, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "${stringResource(R.string.low)}: ${formatTemperature(forecast.minTemperature, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        text = "${stringResource(R.string.precipitation)}: ${forecast.precipitationChance}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
         }
     }
 }
