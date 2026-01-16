@@ -58,12 +58,6 @@ fun NavigationGraph(
         pageCount = { bottomNavItems.size }
     )
     
-    // Pager değişikliklerini dinle ve scroll durumunu sıfırla
-    LaunchedEffect(pagerState.currentPage) {
-        // Sayfa değiştiğinde scroll durumunu sıfırla sinyali gönderilir
-        // Her ekran kendi LazyListState'ini dinleyecek
-    }
-    
     Scaffold(
         bottomBar = {
             NavigationBar {
