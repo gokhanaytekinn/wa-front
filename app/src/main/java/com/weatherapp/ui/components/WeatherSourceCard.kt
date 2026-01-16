@@ -103,7 +103,7 @@ fun WeatherSourceCard(
 
 /**
  * Hava durumu detay ızgarası
- * Sadece hissedilen sıcaklık, min-max sıcaklık ve nem bilgilerini gösterir
+ * Hissedilen sıcaklık, min-max sıcaklık, nem, rüzgar hızı ve yağış bilgilerini gösterir
  */
 @Composable
 fun WeatherDetailGrid(
@@ -154,6 +154,25 @@ fun WeatherDetailGrid(
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+        
+        // Rüzgar hızı ve yağış
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            WeatherDetailItem(
+                icon = Icons.Default.Air,
+                label = stringResource(R.string.wind_speed),
+                value = if (weather.windSpeed > 0) "${weather.windSpeed} ${stringResource(R.string.wind_speed_unit_metric)}" else stringResource(R.string.data_not_available),
+                modifier = Modifier.weight(1f)
+            )
+            WeatherDetailItem(
+                icon = Icons.Default.Cloud,
+                label = stringResource(R.string.precipitation),
+                value = if (weather.precipitation > 0) "${weather.precipitation} ${stringResource(R.string.precipitation_unit)}" else stringResource(R.string.data_not_available),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
