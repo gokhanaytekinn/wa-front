@@ -12,10 +12,45 @@
 
 ### 2. Scroll Sıfırlama
 
-Her ekranın ana içerik composable'ında (`WeatherContent`, `ForecastContent`, `FavoritesContent`, `SettingsScreen`):
-- `rememberLazyListState()` ile scroll durumu yönetimi eklendi
-- `LaunchedEffect(Unit)` ile ekran görünür olduğunda scroll en üste getiriliyor
-- `scrollToItem(0)` ile listenin başına dönülüyor
+Her ekranın ana fonksiyonuna `isVisible` parametresi eklendi:
+- NavigationGraph'ta her sayfa için `isVisible = (pagerState.currentPage == page)` ile görünürlük kontrol ediliyor
+- Her ekran, görünür olduğunda `LaunchedEffect(isVisible)` tetikleniyor
+- Scroll sadece ekran görünür hale geldiğinde sıfırlanıyor
+
+## Teknik Detaylar
+
+### Neden LaunchedEffect(Unit) Yeterli Değildi?
+
+HorizontalPager kullanırken, sayfa composable'ları bellekte kalır ve her geçişte yeniden oluşturulmaz. Bu nedenle:
+- `LaunchedEffect(Unit)` sadece ilk oluşturulduğunda çalışır
+- Sayfaya geri dönüldüğünde tekrar çalışmaz
+- Scroll pozisyonu korunur (istenmediği için)
+
+### Çözüm: Visibility Tracking
+
+```kotlin
+// NavigationGraph.kt
+HorizontalPager(state = pagerState) { page ->
+    val isVisible = pagerState.currentPage == page
+    
+    when (page) {
+        0 -> HomeScreen(isVisible = isVisible)
+        // ...
+    }
+}
+
+// HomeScreen.kt
+LaunchedEffect(isVisible) {
+    if (isVisible) {
+        listState.scrollToItem(0)
+    }
+}
+```
+
+Bu yaklaşımla:
+1. Sayfa numarası değiştiğinde `isVisible` güncellenir
+2. `LaunchedEffect(isVisible)` yeniden çalışır
+3. Eğer sayfa görünür hale geldiyse scroll sıfırlanır
 
 ## Test Etme
 
@@ -42,38 +77,12 @@ Her ekranın ana içerik composable'ında (`WeatherContent`, `ForecastContent`, 
 5. ✅ Ana sayfaya ulaşmalısınız
 6. ✅ Alt navigasyondaki seçili sekme de güncellenmiş olmalı
 
-## Teknik Detaylar
-
-### HorizontalPager Kullanımı:
-```kotlin
-val pagerState = rememberPagerState(
-    initialPage = 0,
-    pageCount = { bottomNavItems.size }
-)
-
-HorizontalPager(
-    state = pagerState,
-    userScrollEnabled = true // Kaydırmaya izin ver
-) { page ->
-    // Ekranları göster
-}
-```
-
-### LazyListState ile Scroll Yönetimi:
-```kotlin
-val listState = rememberLazyListState()
-
-LaunchedEffect(Unit) {
-    listState.scrollToItem(0)
-}
-
-LazyColumn(
-    state = listState,
-    // ...
-) {
-    // İçerik
-}
-```
+### Visibility Tracking Testi:
+1. Ana sayfada aşağı kaydırın
+2. Ayarlar sayfasına gidin (scroll sıfırlanmalı)
+3. Ayarlar sayfasında aşağı kaydırın
+4. Tahminler sayfasına gidin (scroll sıfırlanmalı)
+5. ✅ Her ekran geçişinde scroll en üste dönmeli
 
 ## Önemli Notlar
 
@@ -81,6 +90,7 @@ LazyColumn(
 2. **Performance**: LazyColumn ile scroll durumu verimli şekilde yönetilir
 3. **User Experience**: Hem dokunmatik hem de bottom navigation ile navigasyon mümkün
 4. **Smooth Animations**: `animateScrollToPage()` ile yumuşak geçişler sağlanır
+5. **Lifecycle Aware**: Scroll reset sadece ekran görünür olduğunda tetiklenir
 
 ## Önceki Davranıştan Farklar
 
@@ -92,7 +102,8 @@ LazyColumn(
 ### Yeni:
 - HorizontalPager ile navigasyon
 - Ekranlar arası kaydırma eklendi ✅
-- Scroll her zaman sıfırlanıyor ✅
+- Scroll her ekran görünür olduğunda sıfırlanıyor ✅
+- Visibility tracking ile doğru lifecycle yönetimi ✅
 - Daha sezgisel kullanıcı deneyimi
 
 ## Bağımlılıklar
@@ -101,4 +112,12 @@ Compose Foundation'ın `HorizontalPager` komponenti kullanıldı. Bu komponent C
 
 ## Geriye Dönük Uyumluluk
 
-Tüm mevcut ekran fonksiyonları aynı parametrelerle çalışmaya devam ediyor. API değişikliği yok.
+Tüm ekran fonksiyonlarına `isVisible` parametresi eklendi ancak default değer `true` olduğu için mevcut kullanımlar etkilenmedi. Test kodları ve önizlemeler güncellenmeye ihtiyaç duymaz.
+
+## Kod Kalitesi
+
+- Turkish comments (codebase standardına uygun)
+- Minimal değişiklikler
+- Defensive programming (if isVisible check)
+- Clear parameter naming
+- Documentation included
