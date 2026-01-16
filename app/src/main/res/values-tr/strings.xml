@@ -57,6 +57,8 @@
     <string name="weather_source_1">OpenWeather</string>
     <string name="weather_source_2">WeatherAPI</string>
     <string name="weather_source_3">AccuWeather</string>
+    <string name="average_weather">Ortalama Hava Durumu</string>
+    <string name="all_sources">Tüm Kaynaklar</string>
     
     <!-- Hava Durumu Koşulları -->
     <string name="clear">Açık</string>

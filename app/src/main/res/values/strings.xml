@@ -57,6 +57,8 @@
     <string name="weather_source_1">OpenWeather</string>
     <string name="weather_source_2">WeatherAPI</string>
     <string name="weather_source_3">AccuWeather</string>
+    <string name="average_weather">Average Weather</string>
+    <string name="all_sources">All Sources</string>
     
     <!-- Weather Conditions -->
     <string name="clear">Clear</string>

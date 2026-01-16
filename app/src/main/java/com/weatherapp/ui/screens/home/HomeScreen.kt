@@ -24,6 +24,7 @@ import com.weatherapp.R
 import com.weatherapp.data.model.WeatherSource
 import com.weatherapp.ui.components.ErrorDialog
 import com.weatherapp.ui.components.WeatherSourceCard
+import com.weatherapp.ui.components.formatTemperature
 
 /**
  * Ana sayfa composable
@@ -214,6 +215,19 @@ fun WeatherContent(
             }
         }
         
+        // Ortalama hava durumu kartı
+        weatherData.sources?.let { sources ->
+            if (sources.isNotEmpty()) {
+                item {
+                    AverageWeatherCard(
+                        sources = sources,
+                        temperatureUnit = temperatureUnit,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        
         // Her kaynak için kart
         weatherData.sources?.let { sources ->
             items(sources) { source ->
@@ -241,30 +255,32 @@ fun LocationHeader(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = location.city,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+            Icon(
+                Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(20.dp)
             )
-            if (location.district != null) {
+            Column {
                 Text(
-                    text = location.district,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = if (location.district != null) "${location.district}, ${location.city}" else location.city,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+                Text(
+                    text = location.country,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
             }
-            Text(
-                text = location.country,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
         }
     }
 }
@@ -325,5 +341,151 @@ fun EmptyStateView(
             text = stringResource(R.string.search_location),
             style = MaterialTheme.typography.bodyLarge
         )
+    }
+}
+
+/**
+ * Ortalama hava durumu kartı
+ * Tüm kaynaklardan gelen verilerin ortalamasını gösterir
+ */
+@Composable
+fun AverageWeatherCard(
+    sources: List<WeatherSource>,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    // Ortalamaları hesapla
+    val avgTemperature = sources.map { it.current.temperature }.average()
+    val avgFeelsLike = sources.map { it.current.feelsLike }.average()
+    val avgHumidity = sources.map { it.current.humidity }.average().toInt()
+    val avgWindSpeed = sources.map { it.current.windSpeed }.average()
+    val avgPrecipitation = sources.map { it.current.precipitation }.average()
+    
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Başlık
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.average_weather),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = stringResource(R.string.all_sources),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+                Text(
+                    text = formatTemperature(avgTemperature, temperatureUnit),
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Detay ızgarası
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AverageDetailItem(
+                    icon = Icons.Default.Thermostat,
+                    label = stringResource(R.string.feels_like),
+                    value = formatTemperature(avgFeelsLike, temperatureUnit),
+                    modifier = Modifier.weight(1f)
+                )
+                AverageDetailItem(
+                    icon = Icons.Default.Water,
+                    label = stringResource(R.string.humidity),
+                    value = "$avgHumidity%",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AverageDetailItem(
+                    icon = Icons.Default.Air,
+                    label = stringResource(R.string.wind_speed),
+                    value = "${"%.1f".format(avgWindSpeed)} ${stringResource(R.string.wind_speed_unit_metric)}",
+                    modifier = Modifier.weight(1f)
+                )
+                AverageDetailItem(
+                    icon = Icons.Default.Cloud,
+                    label = stringResource(R.string.precipitation),
+                    value = "${"%.1f".format(avgPrecipitation)} ${stringResource(R.string.precipitation_unit)}",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Ortalama hava durumu detay öğesi
+ */
+@Composable
+fun AverageDetailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        }
     }
 }
