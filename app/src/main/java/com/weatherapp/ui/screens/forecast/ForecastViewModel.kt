@@ -163,10 +163,18 @@ class ForecastViewModel @Inject constructor(
      * Konum seçer
      */
     fun selectLocation(location: LocationSearchResult) {
-        loadForecastData(location.city, location.district)
-        // Seçilen konumu arama kutusunda göster
+        // Update selected location in UI state first to prevent race condition
+        _uiState.update { 
+            it.copy(
+                selectedCity = location.city, 
+                selectedDistrict = location.district,
+                searchResults = emptyList()
+            ) 
+        }
+        // Update search query to show selected location
         _searchQuery.value = location.getDisplayName()
-        _uiState.update { it.copy(searchResults = emptyList()) }
+        // Load forecast data for the selected location
+        loadForecastData(location.city, location.district)
     }
     
     /**
