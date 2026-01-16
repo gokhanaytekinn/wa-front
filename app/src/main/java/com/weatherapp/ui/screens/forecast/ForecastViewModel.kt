@@ -73,7 +73,8 @@ class ForecastViewModel @Inject constructor(
     
     /**
      * Konum için arama sorgusunu günceller
-     * İç güncellemeler için searchLocations tetiklenmez
+     * Güncellenen sorgu, setupSearchQueryListener'da selectedCity ile kontrol edilerek
+     * gereksiz arama yapılması engellenir
      */
     private fun updateSearchQueryForLocation(city: String, district: String?) {
         val newQuery = if (district != null) {
@@ -81,7 +82,7 @@ class ForecastViewModel @Inject constructor(
         } else {
             city
         }
-        // Directly update without triggering search listener
+        // Update query - search listener will skip this since it matches selected location
         _searchQuery.value = newQuery
         // Clear search results when location is selected
         _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
