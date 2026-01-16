@@ -9,6 +9,7 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,9 @@ class HomeViewModel @Inject constructor(
     
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
+    // Job to track and cancel ongoing weather data loading
+    private var loadWeatherJob: Job? = null
     
     init {
         // Son seçilen konumu yükle
@@ -153,7 +157,10 @@ class HomeViewModel @Inject constructor(
      * Hava durumu verilerini yükler
      */
     fun loadWeatherData(city: String, district: String? = null) {
-        viewModelScope.launch {
+        // Cancel any ongoing weather data loading to prevent multiple simultaneous requests
+        loadWeatherJob?.cancel()
+        
+        loadWeatherJob = viewModelScope.launch {
             weatherRepository.getCurrentWeather(city, district).collect { resource ->
                 when (resource) {
                     is Resource.Loading -> {

@@ -9,12 +9,14 @@ import com.weatherapp.data.repository.WeatherRepository
 import com.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -36,6 +38,9 @@ class ForecastViewModel @Inject constructor(
     
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
+    // Job to track and cancel ongoing forecast data loading
+    private var loadForecastJob: Job? = null
     
     init {
         // Son seçilen konumu yükle
@@ -181,7 +186,10 @@ class ForecastViewModel @Inject constructor(
      * Tahmin verilerini yükler
      */
     fun loadForecastData(city: String, district: String? = null) {
-        viewModelScope.launch {
+        // Cancel any ongoing forecast data loading to prevent multiple simultaneous requests
+        loadForecastJob?.cancel()
+        
+        loadForecastJob = viewModelScope.launch {
             weatherRepository.getForecast(city, district).collect { resource ->
                 when (resource) {
                     is Resource.Loading -> {
