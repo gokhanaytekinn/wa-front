@@ -212,7 +212,8 @@ fun DayForecastCard(
             }
             
             // Saatlik tahminler (varsa)
-            if (isExpanded && !forecastDay.hourly.isNullOrEmpty()) {
+            val hourlyForecasts = forecastDay.hourly
+            if (isExpanded && !hourlyForecasts.isNullOrEmpty()) {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
                 
                 Text(
@@ -225,7 +226,7 @@ fun DayForecastCard(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(forecastDay.hourly) { hourly ->
+                    items(hourlyForecasts) { hourly ->
                         HourlyForecastItem(
                             hourly = hourly,
                             temperatureUnit = temperatureUnit

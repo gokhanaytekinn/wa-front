@@ -27,6 +27,8 @@
     <string name="daily_forecast">Günlük Tahmin</string>
     <string name="high">Maks</string>
     <string name="low">Min</string>
+    <string name="min_temp">Minimum</string>
+    <string name="max_temp">Maksimum</string>
     
     <!-- Favoriler Ekranı -->
     <string name="favorite_locations">Favori Konumlar</string>

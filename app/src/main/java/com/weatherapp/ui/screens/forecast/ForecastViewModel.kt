@@ -73,13 +73,18 @@ class ForecastViewModel @Inject constructor(
     
     /**
      * Konum için arama sorgusunu günceller
+     * İç güncellemeler için searchLocations tetiklenmez
      */
     private fun updateSearchQueryForLocation(city: String, district: String?) {
-        _searchQuery.value = if (district != null) {
+        val newQuery = if (district != null) {
             "$district, $city"
         } else {
             city
         }
+        // Directly update without triggering search listener
+        _searchQuery.value = newQuery
+        // Clear search results when location is selected
+        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
     }
     
     /**
@@ -102,9 +107,14 @@ class ForecastViewModel @Inject constructor(
             .debounce(500)
             .distinctUntilChanged()
             .onEach { query ->
-                if (query.isNotBlank()) {
+                // Mevcut seçili konumun query'si ile aynıysa arama yapma
+                val currentLocationQuery = _uiState.value.selectedCity?.let { city ->
+                    _uiState.value.selectedDistrict?.let { "$it, $city" } ?: city
+                }
+                
+                if (query.isNotBlank() && query != currentLocationQuery) {
                     searchLocations(query)
-                } else {
+                } else if (query.isBlank()) {
                     _uiState.update { it.copy(searchResults = emptyList()) }
                 }
             }
@@ -179,7 +189,9 @@ class ForecastViewModel @Inject constructor(
                             it.copy(
                                 weatherData = resource.data,
                                 isLoading = false,
-                                error = null
+                                error = null,
+                                selectedCity = city,
+                                selectedDistrict = district
                             )
                         }
                     }
@@ -215,5 +227,7 @@ data class ForecastUiState(
     val errorResponse: com.weatherapp.data.model.ApiErrorResponse? = null,
     val temperatureUnit: String = "celsius",
     val searchResults: List<LocationSearchResult> = emptyList(),
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    val selectedCity: String? = null,
+    val selectedDistrict: String? = null
 )

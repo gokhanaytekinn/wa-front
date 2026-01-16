@@ -33,6 +33,9 @@ fun WeatherSourceCard(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     
+    // Bugünün tahminini bul (varsa)
+    val todayForecast = source.forecast?.firstOrNull()
+    
     Card(
         modifier = modifier.clickable { isExpanded = !isExpanded },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -89,7 +92,8 @@ fun WeatherSourceCard(
                     
                     WeatherDetailGrid(
                         weather = source.current,
-                        temperatureUnit = temperatureUnit
+                        temperatureUnit = temperatureUnit,
+                        todayForecast = todayForecast
                     )
                 }
             }
@@ -99,13 +103,14 @@ fun WeatherSourceCard(
 
 /**
  * Hava durumu detay ızgarası
- * Tüm hava durumu bilgilerini gösterir
+ * Sadece hissedilen sıcaklık, min-max sıcaklık ve nem bilgilerini gösterir
  */
 @Composable
 fun WeatherDetailGrid(
     weather: CurrentWeather,
     temperatureUnit: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    todayForecast: com.weatherapp.data.model.ForecastDay? = null
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -130,51 +135,26 @@ fun WeatherDetailGrid(
             )
         }
         
-        // Rüzgar hızı ve yağış
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            WeatherDetailItem(
-                icon = Icons.Default.Air,
-                label = stringResource(R.string.wind_speed),
-                value = if (weather.windSpeed > 0) "${weather.windSpeed} ${stringResource(R.string.wind_speed_unit_metric)}" else stringResource(R.string.data_not_available),
-                modifier = Modifier.weight(1f)
-            )
-            WeatherDetailItem(
-                icon = Icons.Default.Cloud,
-                label = stringResource(R.string.precipitation),
-                value = if (weather.precipitation > 0) "${weather.precipitation} ${stringResource(R.string.precipitation_unit)}" else stringResource(R.string.data_not_available),
-                modifier = Modifier.weight(1f)
-            )
+        // Min - Max sıcaklık (bugünün tahmini varsa)
+        todayForecast?.let { forecast ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WeatherDetailItem(
+                    icon = Icons.Default.ThermostatAuto,
+                    label = stringResource(R.string.min_temp),
+                    value = formatTemperature(forecast.day.minTemp, temperatureUnit),
+                    modifier = Modifier.weight(1f)
+                )
+                WeatherDetailItem(
+                    icon = Icons.Default.ThermostatAuto,
+                    label = stringResource(R.string.max_temp),
+                    value = formatTemperature(forecast.day.maxTemp, temperatureUnit),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
-        
-        // Basınç ve görüş mesafesi
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            WeatherDetailItem(
-                icon = Icons.Default.Compress,
-                label = stringResource(R.string.pressure),
-                value = if (weather.pressure > 0) "${weather.pressure} ${stringResource(R.string.pressure_unit)}" else stringResource(R.string.data_not_available),
-                modifier = Modifier.weight(1f)
-            )
-            WeatherDetailItem(
-                icon = Icons.Default.Visibility,
-                label = stringResource(R.string.visibility),
-                value = if (weather.visibility > 0) "${weather.visibility} ${stringResource(R.string.visibility_unit)}" else stringResource(R.string.data_not_available),
-                modifier = Modifier.weight(1f)
-            )
-        }
-        
-        // UV indeksi
-        WeatherDetailItem(
-            icon = Icons.Default.WbSunny,
-            label = stringResource(R.string.uv_index),
-            value = if (weather.uvIndex > 0) weather.uvIndex.toString() else stringResource(R.string.data_not_available),
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 

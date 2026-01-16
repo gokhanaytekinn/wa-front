@@ -80,13 +80,18 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Konum için arama sorgusunu günceller
+     * İç güncellemeler için searchLocations tetiklenmez
      */
     private fun updateSearchQueryForLocation(city: String, district: String?) {
-        _searchQuery.value = if (district != null) {
+        val newQuery = if (district != null) {
             "$district, $city"
         } else {
             city
         }
+        // Directly update without triggering search listener
+        _searchQuery.value = newQuery
+        // Clear search results when location is selected
+        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
     }
     
     /**
@@ -98,9 +103,14 @@ class HomeViewModel @Inject constructor(
             .debounce(500) // 500ms bekle
             .distinctUntilChanged()
             .onEach { query ->
-                if (query.isNotBlank()) {
+                // Mevcut seçili konumun query'si ile aynıysa arama yapma
+                val currentLocationQuery = _uiState.value.selectedCity?.let { city ->
+                    _uiState.value.selectedDistrict?.let { "$it, $city" } ?: city
+                }
+                
+                if (query.isNotBlank() && query != currentLocationQuery) {
                     searchLocations(query)
-                } else {
+                } else if (query.isBlank()) {
                     _uiState.update { it.copy(searchResults = emptyList()) }
                 }
             }
