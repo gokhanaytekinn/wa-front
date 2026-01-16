@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.weatherapp.R
@@ -29,6 +30,9 @@ import com.weatherapp.ui.components.formatTemperature
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+
+// Constants
+private const val CARD_BACKGROUND_ALPHA = 0.5f
 
 /**
  * Tahmin ekranı
@@ -134,6 +138,17 @@ fun ForecastContent(
             )
         }
         
+        // Ortalama tahmin kartı
+        if (sources.isNotEmpty()) {
+            item {
+                AverageForecastCard(
+                    sources = sources,
+                    temperatureUnit = temperatureUnit,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        
         // Her kaynak için accordion kart
         items(sources) { source ->
             ForecastSourceCard(
@@ -144,6 +159,207 @@ fun ForecastContent(
         }
     }
 }
+
+/**
+ * Ortalama tahmin kartı
+ * Tüm kaynaklardan gelen tahmin verilerinin ortalamasını gösterir
+ */
+@Composable
+fun AverageForecastCard(
+    sources: List<com.weatherapp.data.model.ForecastSource>,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    // Her gün için ortalamaları hesapla
+    val averageForecasts = remember(sources) {
+        if (sources.isEmpty()) {
+            emptyList()
+        } else {
+            // Tüm kaynaklardan günlük tahminleri topla
+            val forecastsByDate = mutableMapOf<String, MutableList<com.weatherapp.data.model.SimpleForecast>>()
+            
+            sources.forEach { source ->
+                source.forecasts.forEach { forecast ->
+                    forecastsByDate.getOrPut(forecast.date) { mutableListOf() }.add(forecast)
+                }
+            }
+            
+            // Her gün için ortalama hesapla
+            forecastsByDate.map { (date, forecasts) ->
+                val count = forecasts.size.toDouble()
+                AverageDayForecast(
+                    date = date,
+                    avgMaxTemp = forecasts.sumOf { it.maxTemperature } / count,
+                    avgMinTemp = forecasts.sumOf { it.minTemperature } / count,
+                    avgHumidity = (forecasts.sumOf { it.humidity.toDouble() } / count).toInt(),
+                    avgWindSpeed = forecasts.sumOf { it.windSpeed } / count,
+                    avgPrecipitationChance = (forecasts.sumOf { it.precipitationChance.toDouble() } / count).toInt(),
+                    description = forecasts.groupBy { it.description }.maxBy { it.value.size }.key
+                )
+            }.sortedBy { it.date }
+        }
+    }
+    
+    if (averageForecasts.isEmpty()) return
+    
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Başlık
+            Text(
+                text = stringResource(R.string.average_weather),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = stringResource(R.string.all_sources),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            // Günlük tahminler
+            averageForecasts.forEach { forecast ->
+                AverageDayForecastItem(
+                    forecast = forecast,
+                    temperatureUnit = temperatureUnit,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (forecast != averageForecasts.last()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ortalama günlük tahmin öğesi
+ */
+@Composable
+fun AverageDayForecastItem(
+    forecast: AverageDayForecast,
+    temperatureUnit: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = CARD_BACKGROUND_ALPHA)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Tarih ve açıklama
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = formatDate(forecast.date),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = forecast.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                    )
+                </Column>
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "${stringResource(R.string.high)}: ${formatTemperature(forecast.avgMaxTemp, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "${stringResource(R.string.low)}: ${formatTemperature(forecast.avgMinTemp, temperatureUnit)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                </Column>
+            }
+            
+            // Metrikler
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Air,
+                        contentDescription = stringResource(R.string.wind_speed),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = String.format("%.1f %s", forecast.avgWindSpeed, stringResource(R.string.wind_speed_unit_metric)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cloud,
+                        contentDescription = stringResource(R.string.precipitation),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${forecast.avgPrecipitationChance}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ortalama günlük tahmin verisi için data class
+ */
+private data class AverageDayForecast(
+    val date: String,
+    val avgMaxTemp: Double,
+    val avgMinTemp: Double,
+    val avgHumidity: Int,
+    val avgWindSpeed: Double,
+    val avgPrecipitationChance: Int,
+    val description: String
+)
 
 /**
  * Tahmin kaynağı kartı - Accordion tarzında genişletilebilir
