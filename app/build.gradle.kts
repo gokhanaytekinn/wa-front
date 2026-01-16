@@ -25,6 +25,8 @@ android {
 
     signingConfigs {
         create("release") {
+            // These will be overridden by injected properties in CI
+            // For local builds, set environment variables
             val keystorePath = System.getenv("KEYSTORE")
             if (keystorePath != null) {
                 storeFile = file(keystorePath)
@@ -37,7 +39,6 @@ android {
 
     buildTypes {
         release {
-            // Only apply signing config if environment variables are set
             val keystorePath = System.getenv("KEYSTORE")
             if (keystorePath != null) {
                 signingConfig = signingConfigs.getByName("release")
