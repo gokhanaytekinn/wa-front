@@ -29,7 +29,7 @@ object NetworkModule {
      * Base URL - Backend API adresi
      * wa-core sistemiyle iletişim için yapılandırılmıştır
      */
-    private const val BASE_URL = "http://10.0.2.2:8080/api/"
+    private const val BASE_URL = "https://wa-core-production.up.railway.app/api/"
 
     /**
      * Gson sağlayıcı
